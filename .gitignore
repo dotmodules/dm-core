@@ -1,0 +1,10 @@
+*.swp
+*.log
+*.DS_Store
+
+# ctags generatted index
+tags
+
+# bats temp directory
+tests/helpers
+
