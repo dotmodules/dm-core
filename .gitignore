@@ -6,5 +6,5 @@
 tags
 
 # bats temp directory
-tests/helpers
+tests/bats_resources/
 

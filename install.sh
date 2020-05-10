@@ -143,7 +143,6 @@ get_modules_relative_path() {
   echo "$rel_path"
 }
 
-
 assert_repo
 log "Installing  dotmodules to your repo.."
 path_prefix=$(get_path_prefix)

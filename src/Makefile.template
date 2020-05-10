@@ -3,7 +3,7 @@
 
 .DEFAULT_GOAL := make_help
 SHELL := /bin/sh
-NAME := DotModules
+NAME := DM
 PATH_PREFIX := __PREFIX__
 RELATIVE_MODULES_PATH := __RELATIVE__
 
@@ -48,9 +48,9 @@ make_help:
 
 .PHONY: help
 help:
-	@$(PATH_PREFIX)/dm.tmux.sh --help
+	@$(PATH_PREFIX)/dm.sh --help
 
 .PHONY: dm
 dm:
-	@$(PATH_PREFIX)/dm.tmux.sh $(RELATIVE_MODULES_PATH)
+	@$(PATH_PREFIX)/dm.sh $(RELATIVE_MODULES_PATH)
 
