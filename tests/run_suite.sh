@@ -14,10 +14,10 @@ cd "$(dirname "$(readlink -f "$0")")"
 
 TEST_TEMP_DIR="bats_resources"
 
-BATS_CORE_REPO_URL="git@github.com:bats-core/bats-core.git"          # https://github.com/bats-core/bats-core
-BATS_MOCK_REPO_URL="git@github.com:jasonkarns/bats-mock.git"         # https://github.com/jasonkarns/bats-mock
-BATS_ASSERT_REPO_URL="git@github.com:jasonkarns/bats-assert-1.git"   # https://github.com/jasonkarns/bats-assert-1
-BATS_SUPPORT_REPO_URL="git@github.com:ztombol/bats-support.git"      # https://github.com/ztombol/bats-support
+BATS_CORE_REPO_URL="https://github.com/bats-core/bats-core.git"          # https://github.com/bats-core/bats-core
+BATS_MOCK_REPO_URL="https://github.com/jasonkarns/bats-mock.git"         # https://github.com/jasonkarns/bats-mock
+BATS_ASSERT_REPO_URL="https://github.com/bats-core/bats-assert.git"      # https://github.com/jasonkarns/bats-assert-1
+BATS_SUPPORT_REPO_URL="https://github.com/ztombol/bats-support.git"      # https://github.com/ztombol/bats-support
 
 BATS_CORE_REPO_DIR="bats"
 BATS_MOCK_REPO_DIR="mocks"

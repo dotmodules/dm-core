@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/dotmodules/dm.svg?branch=master)](https://travis-ci.org/dotmodules/dm)
+
 # Dotfiles configuration management system
 
 This repository contains my personal Arch based configuration management
