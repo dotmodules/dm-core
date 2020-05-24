@@ -20,8 +20,9 @@ DM__GLOBAL__CONFIG__CONFIG_FILE_NAME="dm.conf"
 # Character used to separate lists in the whole project.
 DM__GLOBAL__CONFIG__LIST_SEPARATOR=" "
 
-DM__GLOBAL__CONFIG__HOOK__PRE_INSTALL="dm.hook.pre_install"
-DM__GLOBAL__CONFIG__HOOK__POST_INSTALL="dm.hook.post_install"
+# Cache directory to store data between runs
+DM__GLOBAL__CONFIG__CACHE_DIR="../.dm.cache"
+DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.variables"
 
 
 #==============================================================================
@@ -85,6 +86,8 @@ then
   RESET=$(tput sgr0)
   # shellcheck disable=SC2034
   BOLD=$(tput bold)
+  # shellcheck disable=SC2034
+  DIM=$(tput dim)
 else
   # shellcheck disable=SC2034
   RED=""
@@ -104,7 +107,59 @@ else
   RESET=""
   # shellcheck disable=SC2034
   BOLD=""
+  # shellcheck disable=SC2034
+  DIM=""
 fi
+
+
+#==============================================================================
+# DEBUGGING FUNCTIONALITY
+
+dm_lib__debug() {
+  #============================================================================
+  # Prints out the given log message to [file descriptor 3] if it is attached
+  # to the current process. Append '3>&1' to the invocation to be able to see
+  # the debug messages.
+  #============================================================================
+  if [ -t 3 ]
+  then
+    domain="$1"
+    message="$2"
+    >&3 printf "${DIM}$(date +"%F %T.%N") | %32s | %s${RESET}\n" "$domain" "$message"
+  fi
+}
+
+dm_lib__debug_list() {
+  #============================================================================
+  # Prints out a given newline separated list to the debug output in a
+  # formatted way if debug mode is enabled.
+  #============================================================================
+  if [ -t 3 ]
+  then
+    domain="$1"
+    message="$2"
+    list="$3"
+
+    dm_lib__debug "$domain" "$message"
+
+    IFS_backup="$IFS"
+    IFS=$'\n'
+    for item in $list
+    do
+      dm_lib__debug "$domain" "- '${item}'"
+    done
+    IFS="$IFS_backup"
+  fi
+}
+
+
+#==============================================================================
+# SUBMODULE: CACHE
+#==============================================================================
+
+dm_lib__cache__init() {
+  mkdir -p "$DM__GLOBAL__CONFIG__CACHE_DIR"
+}
 
 
 #==============================================================================
@@ -145,6 +200,9 @@ dm_lib__modules__list() {
   # -  0 : ok
   # - !0 : error
   #============================================================================
+  debug_domain="dm_lib__modules_list"
+  dm_lib__debug "$debug_domain" "loading modules from '${DM__GLOBAL__RUNTIME__MODULES_ROOT}'"
+
   modules=$(\
     find "$DM__GLOBAL__RUNTIME__MODULES_ROOT"\
       -type f\
@@ -737,7 +795,7 @@ _dm_lib__utils__trim_list() {
   cat - |\
     _dm_lib__utils__normalize_whitespace | \
     _dm_lib__utils__remove_surrounding_whitespace | \
-    cut --delimiter=" " --fields="${items}"
+    cut --delimiter=' ' --fields="${items}"
 }
 
 _dm_lib__utils__select_line() {
@@ -812,3 +870,31 @@ _dm_lib__utils__parse_list() {
     _dm_lib__utils__remove_surrounding_whitespace
 }
 
+
+#==============================================================================
+# SUBMODULE: VARIABLES
+#==============================================================================
+
+dm_lib__variables__init() {
+  debug_doman="dm_lib__variables"
+  dm_lib__debug "$debug_doman" "initializing variables"
+  dm_lib__debug "$debug_doman" "deleting existing variables file.."
+  rm -f $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
+
+  modules=$(dm_lib__modules__list)
+  for module in $modules
+  do
+    dm_lib__debug "$debug_doman" "loading variables from module '${module}'"
+    variables="$(dm_lib__config__get_variables "$module")"
+    dm_lib__debug_list "$debug_doman" "variables loaded:" "$variables"
+
+    echo "$variables" >> $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
+  done
+  dm_lib__debug "$debug_doman" "initialization finished"
+}
+
+dm_lib__variables__get() {
+  variable="$1"
+  grep -E "^${variable}" $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE | \
+    _dm_lib__utils__trim_list 2-
+}

@@ -6,6 +6,7 @@
 set -e
 set -u
 
+
 #==============================================================================
 # GLOBAL SCRIPT BASED VARIABLES
 
@@ -13,10 +14,12 @@ DM__GLOBAL__RUNTIME__NAME="$(basename "$0")"
 DM__GLOBAL__RUNTIME__PATH="$(dirname "$(readlink -f "$0")")"
 DM__GLOBAL__RUNTIME__VERSION=$(cat "${DM__GLOBAL__RUNTIME__PATH}/../VERSION")
 
+
 #==============================================================================
 # PATH CHANGE
 
 cd "${DM__GLOBAL__RUNTIME__PATH}"
+
 
 #==============================================================================
 # EXTERNAL LIBRARIES
@@ -26,6 +29,7 @@ cd "${DM__GLOBAL__RUNTIME__PATH}"
 DM__GLOBAL__RUNTIME__NAME="$(basename "$0")"
 DM__GLOBAL__RUNTIME__PATH="$(dirname "$(readlink -f "$0")")"
 DM__GLOBAL__RUNTIME__VERSION=$(cat "${DM__GLOBAL__RUNTIME__PATH}/../VERSION")
+
 
 #==============================================================================
 # DOCUMENTATION
@@ -117,14 +121,23 @@ display_documentation() {
   print_documentation | sed 's/\x0F//g' | less -R
 }
 
+#==============================================================================
+# INDENTED PRINTOUT
+
+dm_cli__print() {
+  message="$1"
+  IFS_backup="$IFS"
+  IFS=$'\n'
+  for line in $message
+  do
+    echo "   ${line}"
+  done
+  IFS="$IFS_backup"
+}
+
 
 #==============================================================================
 # PARAMETER PARSING
-
-# This variable contains the relative path from this dm.sh entry script to the
-# modules root directory. The path is passed from the deployed Makefile as the
-# only parameter, that knows the path from the deployment process.
-DM__GLOBAL__RUNTIME__MODULES_ROOT=""
 
 while [ $# -gt 0 ]
 do
@@ -135,8 +148,6 @@ do
       exit 0
       ;;
     *)
-      # The passed parameter is relative to the dm repo, so we need to step
-      # back one more level.
       DM__GLOBAL__RUNTIME__MODULES_ROOT="$1"
       shift
       ;;
@@ -144,6 +155,183 @@ do
 done
 
 
-dm_lib__modules__list
+#==============================================================================
+# COMMAND REGISTERING
 
+REGISTERED_COMMANDS=""
+DEFAULT_COMMAND=""
+
+dm_cli__register_command() {
+  hotkey="$1"
+  command="$2"
+  REGISTERED_COMMANDS="$(echo "${REGISTERED_COMMANDS}"; echo "${hotkey} ${command}")"
+  dm_lib__debug dm_cli__register_command "command '${command}' registered for hotkey '${hotkey}'"
+}
+
+dm_cli__register_default_command() {
+  command="$1"
+  DEFAULT_COMMAND="$command"
+  dm_lib__debug dm_cli__register_default_command "default command '${command}' registered"
+}
+
+
+#==============================================================================
+# COMMAND: EXIT
+
+dm_cli__register_command "q" "dm_cli__interpreter_quit"
+dm_cli__register_command "quit" "dm_cli__interpreter_quit"
+dm_cli__register_command "exit" "dm_cli__interpreter_quit"
+dm_cli__interpreter_quit() {
+  dm_lib__debug dm_cli__interpreter_quit "interpreter quit called, setting exit condition.."
+  exit_condition=1
+}
+
+
+#==============================================================================
+# COMMAND: PRINT HELP
+
+dm_cli__register_command "h" "dm_cli__print_help"
+dm_cli__register_command "help" "dm_cli__print_version"
+dm_cli__register_default_command "dm_cli__print_help"
+dm_cli__print_help() {
+  echo "This is the help."
+}
+
+
+#==============================================================================
+# COMMAND: PRINT VERSION
+
+dm_cli__register_command "version" "dm_cli__print_version"
+dm_cli__print_version() {
+  echo ""
+  dm_cli__print "$DM__GLOBAL__RUNTIME__VERSION"
+  echo ""
+}
+
+
+#==============================================================================
+# COMMAND: VARIABLES
+
+dm_cli__register_command "v" "dm_cli__list_variables"
+dm_cli__register_command "variables" "dm_cli__list_variables"
+dm_cli__list_variables() {
+  modules=$(dm_lib__modules__list)
+  for module in $modules
+  do
+    name="$(dm_lib__config__get_name "$module")"
+    variables="$(dm_lib__config__get_variables "$module")"
+    status="deployed"
+
+    name="${BOLD}${name}${RESET}"
+    echo "${name}"
+    echo "${variables}"
+  done
+}
+
+
+#==============================================================================
+# COMMAND: LIST MODULES
+
+dm_cli__register_command "l" "dm_cli__list_modules"
+dm_cli__register_command "list" "dm_cli__list_modules"
+dm_cli__list_modules() {
+  echo ""
+  dm_cli__print "$(_dm_cli__list_modules | column --table --separator ":")"
+  echo ""
+}
+
+_dm_cli__list_modules() {
+  index=1
+  modules=$(dm_lib__modules__list)
+  for module in $modules
+  do
+    name="$(dm_lib__config__get_name "$module")"
+    version="$(dm_lib__config__get_version "$module")"
+    status="deployed"
+
+    name="${BOLD}${name}${RESET}"
+    version="${version}"
+    status="${BOLD}${GREEN}${status}${RESET}"
+    path="$(readlink -f ${module})"
+
+    echo "[${index}]:${name}:${version}:${status}:${path}"
+    index=$(expr $index + 1)
+  done
+}
+
+
+#==============================================================================
+# INTERPRETER
+
+DM_CLI__PROMPT=" ${BOLD}dm${RESET} # "
+
+dm_cli__interpreter() {
+  debug_domain="dm_cli__interpreter"
+
+  dm_lib__debug "$debug_domain" "interpreter starting.."
+  exit_condition=0
+  while [ $exit_condition -eq 0 ]
+  do
+    dm_lib__debug "$debug_domain" "waiting for user input.."
+    read -p "$DM_CLI__PROMPT" raw_command
+    if [ -z "$raw_command" ]
+    then
+      dm_lib__debug "$debug_domain" "empty user input received, skip processing.."
+      continue
+    fi
+    dm_lib__debug "$debug_domain" "user input received: '${raw_command}'"
+
+    hotkey=$(echo "$raw_command" | cut -d ' ' -f 1)
+    dm_lib__debug "$debug_domain" "parsed hotkey: ${hotkey}"
+
+    word_count=$(echo "$raw_command" | wc -w)
+    dm_lib__debug "$debug_domain" "user input word count: ${word_count}"
+
+    if [ $word_count -gt 1 ]
+    then
+      params=$(echo "$raw_command" | cut -d ' ' -f 2-)
+      dm_lib__debug "$debug_domain" "received additional paramters: '${params}'"
+    else
+      params=""
+      dm_lib__debug "$debug_domain" "no additional parameters received"
+    fi
+
+    result=$(echo "$REGISTERED_COMMANDS" | grep -E "^${hotkey}\s" || true)
+    dm_lib__debug "$debug_domain" "command matching result: '${result}'"
+    if [ -z "$result" ]
+    then
+      dm_lib__debug "$debug_domain" "no match for hotkey, executing default command: '${DEFAULT_COMMAND}'"
+      $DEFAULT_COMMAND
+    else
+      command=$(echo "$result" | cut -d ' ' -f 2)
+      dm_lib__debug "$debug_domain" "command matched: '${command}'"
+      dm_lib__debug "$debug_domain" "executing command with parameters: '${command} ${params}'"
+      $command $params
+    fi
+    dm_lib__debug "$debug_domain" "command executed"
+  done
+}
+
+dm_cli__welcome_message() {
+  echo " ${BOLD}dotmodules${RESET} v${DM__GLOBAL__RUNTIME__VERSION}"
+}
+
+
+dm_cli__init() {
+  debug_domain="dm_cli__init"
+  dm_lib__debug $debug_domain "initializing cache"
+  dm_lib__cache__init
+  dm_lib__variables__init
+  dm_lib__variables__get IMRE
+  dm_lib__debug $debug_domain "initializing cache"
+}
+
+
+#==============================================================================
+# ENTRY POINT
+#==============================================================================
+
+dm_cli__init
+dm_cli__welcome_message
+dm_cli__interpreter
 

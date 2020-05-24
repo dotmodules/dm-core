@@ -8,3 +8,6 @@ tags
 # bats temp directory
 tests/bats_resources/
 
+# dm cache directory
+.dm.cache/
+
