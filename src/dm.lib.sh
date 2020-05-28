@@ -24,6 +24,9 @@ DM__GLOBAL__CONFIG__LIST_SEPARATOR=" "
 DM__GLOBAL__CONFIG__CACHE_DIR="../.dm.cache"
 DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.variables"
 
+# Explanation: https://github.com/koalaman/shellcheck/wiki/SC2039#c-style-escapes
+DM__GLOBAL__NEWLINE="$(printf '%b_' '\n')"; DM__GLOBAL__NEWLINE="${DM__GLOBAL__NEWLINE%_}"
+
 
 #==============================================================================
 # VARIABLES: RUNTIME
@@ -32,6 +35,9 @@ DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.v
 # The following variables are expected to be set by the main script that uses
 # this library. The values are depend on the actual deployment configuration,
 # so they cannot be static like the other global variables.
+
+# Global  debug enabled flag. Debug will be enabled if the value is 1.
+DM__GLOBAL__RUNTIME__DEBUG_ENABLED="0"
 
 # Name of the main executable. Used for error reporting.
 DM__GLOBAL__RUNTIME__NAME="__INVALID__"
@@ -48,6 +54,8 @@ DM__GLOBAL__RUNTIME__MODULES_ROOT="__INVALID__"
 #==============================================================================
 # LOG INTERFACE API
 #==============================================================================
+
+
 
 dm_lib__log() {
   echo "${RED}${BOLD}Interface incomplete: dm_lib__log not implemented!${RESET}"
@@ -69,25 +77,25 @@ dm_lib__log_verbose() {
 if command -v tput > /dev/null
 then
   # shellcheck disable=SC2034
-  RED=$(tput setaf 1)
+  RED="$(tput setaf 1)"
   # shellcheck disable=SC2034
-  RED_BG=$(tput setab 1)
+  RED_BG="$(tput setab 1)"
   # shellcheck disable=SC2034
-  GREEN=$(tput setaf 2)
+  GREEN="$(tput setaf 2)"
   # shellcheck disable=SC2034
-  YELLOW=$(tput setaf 3)
+  YELLOW="$(tput setaf 3)"
   # shellcheck disable=SC2034
-  BLUE=$(tput setaf 4)
+  BLUE="$(tput setaf 4)"
   # shellcheck disable=SC2034
-  MAGENTA=$(tput setaf 5)
+  MAGENTA="$(tput setaf 5)"
   # shellcheck disable=SC2034
-  CYAN=$(tput setaf 6)
+  CYAN="$(tput setaf 6)"
   # shellcheck disable=SC2034
-  RESET=$(tput sgr0)
+  RESET="$(tput sgr0)"
   # shellcheck disable=SC2034
-  BOLD=$(tput bold)
+  BOLD="$(tput bold)"
   # shellcheck disable=SC2034
-  DIM=$(tput dim)
+  DIM="$(tput dim)"
 else
   # shellcheck disable=SC2034
   RED=""
@@ -117,24 +125,22 @@ fi
 
 dm_lib__debug() {
   #============================================================================
-  # Prints out the given log message to [file descriptor 3] if it is attached
-  # to the current process. Append '3>&1' to the invocation to be able to see
-  # the debug messages.
+  # Prints out the given message to standard error if debug mode is enabled.
   #============================================================================
-  if [ -t 3 ]
+  if [ "$DM__GLOBAL__RUNTIME__DEBUG_ENABLED" = "1" ]
   then
     domain="$1"
     message="$2"
-    >&3 printf "${DIM}$(date +"%F %T.%N") | %32s | %s${RESET}\n" "$domain" "$message"
+    printf "${DIM}$(date +"%F %T.%N") | %36s | %s${RESET}\n" "$domain" "$message"
   fi
-}
+} >&2
 
 dm_lib__debug_list() {
   #============================================================================
   # Prints out a given newline separated list to the debug output in a
-  # formatted way if debug mode is enabled.
+  # formatted line-by-line way if debug mode is enabled.
   #============================================================================
-  if [ -t 3 ]
+  if [ "$DM__GLOBAL__RUNTIME__DEBUG_ENABLED" = "1" ]
   then
     domain="$1"
     message="$2"
@@ -143,14 +149,14 @@ dm_lib__debug_list() {
     dm_lib__debug "$domain" "$message"
 
     IFS_backup="$IFS"
-    IFS=$'\n'
+    IFS="$DM__GLOBAL__NEWLINE"
     for item in $list
     do
       dm_lib__debug "$domain" "- '${item}'"
     done
     IFS="$IFS_backup"
   fi
-}
+} >&2
 
 
 #==============================================================================
@@ -203,14 +209,14 @@ dm_lib__modules__list() {
   debug_domain="dm_lib__modules_list"
   dm_lib__debug "$debug_domain" "loading modules from '${DM__GLOBAL__RUNTIME__MODULES_ROOT}'"
 
-  modules=$(\
+  modules="$(\
     find "$DM__GLOBAL__RUNTIME__MODULES_ROOT"\
       -type f\
       -name "$DM__GLOBAL__CONFIG__CONFIG_FILE_NAME" | sort\
-  )
+  )"
 
   for module in $modules; do
-    echo $(dirname "$module")
+    echo "$(dirname "$module")"
   done
   return 0
 }
@@ -375,8 +381,10 @@ dm_lib__config__get_variables() {
   #============================================================================
   module_path="$1"
 
+  debug_domain="dm_lib__config__get_variables"
   prefix="REGISTER"
 
+  dm_lib__debug "$debug_domain" "getting lines from config file for prefix '${prefix}' in moodule '${module_path}'.."
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_list
 }
@@ -830,7 +838,7 @@ _dm_lib__utils__select_line() {
   # - !0 : error
   #============================================================================
   line="$1"
-  cat - | head --lines="${line}"
+  cat - | sed "${line}q;d"
 }
 
 _dm_lib__utils__parse_list() {
@@ -865,32 +873,118 @@ _dm_lib__utils__parse_list() {
   # -  0 : ok
   # - !0 : error
   #============================================================================
-  cat - |\
+  cat - | \
     _dm_lib__utils__normalize_whitespace | \
     _dm_lib__utils__remove_surrounding_whitespace
 }
+
+_dm_lib__utils__merge_lists() {
+  #============================================================================
+  # Merges two lists by sorting and deduplicating the items.
+  #============================================================================
+  # INPUT
+  #============================================================================
+  # Global variables
+  # - None
+  #
+  # Arguments
+  # - 1: list one
+  # - 2: list two
+  #
+  # StdIn
+  # - None
+  #
+  #============================================================================
+  # OUTPUT
+  #============================================================================
+  # Output variables
+  # - None
+  #
+  # StdOut
+  # - Merged, sorted, deduplicate list.
+  #
+  # StdErr
+  # - Error that occured during operation.
+  #
+  # Status
+  # -  0 : ok
+  # - !0 : error
+  #============================================================================
+  list_1="$1"
+  list_2="$2"
+  merged_values="${list_1} ${list_2}"
+  echo "$merged_values" | xargs -n1 | sort | uniq | xargs
+}
+
 
 
 #==============================================================================
 # SUBMODULE: VARIABLES
 #==============================================================================
 
-dm_lib__variables__init() {
-  debug_doman="dm_lib__variables"
-  dm_lib__debug "$debug_doman" "initializing variables"
-  dm_lib__debug "$debug_doman" "deleting existing variables file.."
-  rm -f $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
+dm_lib__variables__load() {
+  dm_lib__debug "dm_lib__variables__load" \
+    "loading variables from the modules.."
 
-  modules=$(dm_lib__modules__list)
-  for module in $modules
+  _dm_lib__variables__init
+
+  variables="$(_dm_lib__variables__get_variables_from_modules)"
+  merged_variables=""
+
+  IFS_backup="$IFS"
+  IFS="$DM__GLOBAL__NEWLINE"
+  for variable in $variables
   do
-    dm_lib__debug "$debug_doman" "loading variables from module '${module}'"
-    variables="$(dm_lib__config__get_variables "$module")"
-    dm_lib__debug_list "$debug_doman" "variables loaded:" "$variables"
+    variable_name="$(echo "$variable" | _dm_lib__utils__trim_list 1)"
+    new_values="$(echo "$variable" | _dm_lib__utils__trim_list 2-)"
+    dm_lib__debug "dm_lib__variables__load" \
+      "processing variable name: '$variable_name'"
 
-    echo "$variables" >> $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
+    existing_variable="$(echo "$merged_variables" | grep -E "^${variable_name}\s" || true)"
+    if [ -n "$existing_variable" ]
+    then
+      dm_lib__debug "dm_lib__variables__load" \
+        "existing variable found: '$existing_variable'"
+
+      existing_values="$(echo "$existing_variable" | _dm_lib__utils__trim_list 2-)"
+
+      merged_values="$(_dm_lib__utils__merge_lists "${existing_values}" "${new_values}")"
+
+      dm_lib__debug "dm_lib__variables__load" \
+        "values merged: '$merged_values'"
+
+      updated_variable="${variable_name} ${merged_values}"
+
+      dm_lib__debug "dm_lib__variables__load" \
+        "variable updated: '$updated_variable'"
+
+      merged_variables="$(\
+        echo "$merged_variables" | \
+        sed "s%^${variable_name}.*$%${updated_variable}%" \
+      )"
+
+    else
+      dm_lib__debug "dm_lib__variables__load" \
+        "variable '${variable_name}' no match in temp cache"
+      dm_lib__debug "dm_lib__variables__load" \
+        "adding variable '${variable_name}' to temp cache"
+      sorted_values="$(_dm_lib__utils__merge_lists "${new_values}" "")"
+      merged_variables="$( \
+        printf "%s\n%s" "$merged_variables" "${variable_name} ${sorted_values}" \
+      )"
+    fi
   done
-  dm_lib__debug "$debug_doman" "initialization finished"
+  IFS="$IFS_backup"
+
+  _dm_lib__variables__write_to_cache "$merged_variables"
+  dm_lib__debug "dm_lib__variables__load" "initialization finished"
+}
+
+_dm_lib__variables__write_to_cache() {
+  merged_variables="$1"
+  dm_lib__debug "_dm_lib__variables__write_to_cache" \
+    "writing variables to the variable cache file"
+  echo "$merged_variables" | sort > $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
 }
 
 dm_lib__variables__get() {
@@ -898,3 +992,22 @@ dm_lib__variables__get() {
   grep -E "^${variable}" $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE | \
     _dm_lib__utils__trim_list 2-
 }
+
+_dm_lib__variables__init() {
+  dm_lib__debug "_dm_lib__variables__init" \
+    "initializing variable cache"
+
+  rm -f $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
+
+  dm_lib__debug "_dm_lib__variables__init" \
+    "existing variable cache file deleted"
+}
+
+_dm_lib__variables__get_variables_from_modules() {
+  modules="$(dm_lib__modules__list)"
+  for module in $modules
+  do
+    dm_lib__config__get_variables "$module"
+  done
+}
+
