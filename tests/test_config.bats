@@ -4,19 +4,21 @@ load $BATS_ASSERT
 load $BATS_SUPPORT
 load test_helper
 
-
-setup_config_file() {
+setup() {
   export dummy_module_path="${DM__TEST__TEST_DIR}/module"
   mkdir -p $dummy_module_path
   export dummy_config_file="${dummy_module_path}/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
+}
+
+teardown() {
+  rm -r "$dummy_module_path"
+  mkdir -p "$dummy_module_path"
 }
 
 # ==============================================================================
 # CONFIG LINE EXTRACTION
 
 @test "config - relevant lines can be extracted" {
-  setup_config_file
-
   prefix="PREFIX"
   expected="${prefix} this line is expected."
 
@@ -33,8 +35,6 @@ setup_config_file() {
 }
 
 @test "config - only the right ones are selected" {
-  setup_config_file
-
   prefix="PREFIX"
   expected="${prefix} this line is expected."
 
@@ -51,8 +51,6 @@ setup_config_file() {
 }
 
 @test "config - messy whitespace can be tolerated" {
-  setup_config_file
-
   prefix="PREFIX"
   expected="            ${prefix} this line is expected."
 
@@ -368,8 +366,6 @@ setup_config_file() {
 # FULL CONFIG FILE
 
 @test "config - tidy config file can be parsed" {
-  setup_config_file
-
   name="My module"
   echo "NAME ${name}" >> $dummy_config_file
 
@@ -415,8 +411,6 @@ setup_config_file() {
 }
 
 @test "config - messy config file can be parsed" {
-  setup_config_file
-
   name="My module"
   echo "  NAME     ${name}   " >> $dummy_config_file
 

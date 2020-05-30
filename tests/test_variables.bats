@@ -4,9 +4,7 @@ load $BATS_ASSERT
 load $BATS_SUPPORT
 load test_helper
 
-
 setup() {
-  mkdir -p "${DM__TEST__TEST_DIR}"
   touch "${DM__TEST__TEST_DIR}/temp_var_cache"
   export DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE=$( \
     realpath --relative-to="$(pwd)" "${DM__TEST__TEST_DIR}/temp_var_cache" \
