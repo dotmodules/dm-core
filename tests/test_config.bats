@@ -377,7 +377,7 @@ setup_config_file() {
   echo "VERSION ${version}" >> $dummy_config_file
 
   docs="This is my doc."
-  echo "DOCS ${docs}" >> $dummy_config_file
+  echo "DOC ${docs}" >> $dummy_config_file
 
   variable="VARIABLE value1 value2"
   echo "REGISTER ${variable}" >> $dummy_config_file
@@ -424,7 +424,7 @@ setup_config_file() {
   echo " VERSION             ${version}  dummy words..       " >> $dummy_config_file
 
   docs="This is my doc."
-  echo "   DOCS     ${docs}          " >> $dummy_config_file
+  echo "   DOC     ${docs}          " >> $dummy_config_file
 
   variable="VARIABLE value1 value2"
   echo "        REGISTER     ${variable}     " >> $dummy_config_file

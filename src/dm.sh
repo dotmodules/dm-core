@@ -29,9 +29,13 @@ DM__GLOBAL__RUNTIME__NAME="$(basename "$0")"
 DM__GLOBAL__RUNTIME__PATH="$(dirname "$(readlink -f "$0")")"
 DM__GLOBAL__RUNTIME__VERSION=$(cat "${DM__GLOBAL__RUNTIME__PATH}/../VERSION")
 
+DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING="12"
+
 DM__GLOBAL__CLI__PROMPT=" ${BOLD}dm${RESET} # "
 DM__GLOBAL__CLI__EXIT_CONDITION="0"
 
+# TODO: make this makefile based
+# DM__GLOBAL__RUNTIME__BOOST__VARIABLES="1"
 
 #==============================================================================
 # DOCUMENTATION
@@ -126,16 +130,9 @@ display_documentation() {
 #==============================================================================
 # INDENTED PRINTOUT
 
-dm_cli__print() {
+dm_cli__indent() {
   # Indents the given message to a common level.
-  message="$1"
-  IFS_backup="$IFS"
-  IFS=$'\n'
-  for line in $message
-  do
-    echo "   ${line}"
-  done
-  IFS="$IFS_backup"
+  cat - | sed 's/^/    /'
 }
 
 
@@ -201,7 +198,7 @@ _dm_cli__get_command() {
       "no match for hotkey, using default command: '${DM__RUNTIME__DEFAULT_COMMAND}'"
     _command="$DM__RUNTIME__DEFAULT_COMMAND"
   fi
-  echo "$_command" | _dm_lib__utils__remove_surrounding_whitespace
+  echo "${_command} ${params}" | _dm_lib__utils__remove_surrounding_whitespace
 }
 
 
@@ -221,11 +218,11 @@ dm_cli__interpreter_quit() {
 #==============================================================================
 # COMMAND: PRINT HELP
 
-dm_cli__register_command "help" "dm_cli__print_help"
-dm_cli__register_default_command "dm_cli__print_help"
-dm_cli__print_help() {
+dm_cli__register_command "help" "dm_cli__indent_help"
+dm_cli__register_default_command "dm_cli__indent_help"
+dm_cli__indent_help() {
   echo ""
-  dm_cli__print "This is the help message.."
+  echo "This is the help message.." | dm_cli__indent
   echo ""
 }
 
@@ -233,10 +230,10 @@ dm_cli__print_help() {
 #==============================================================================
 # COMMAND: PRINT VERSION
 
-dm_cli__register_command "version" "dm_cli__print_version"
-dm_cli__print_version() {
+dm_cli__register_command "version" "dm_cli__indent_version"
+dm_cli__indent_version() {
   echo ""
-  dm_cli__print "dot modules v${DM__GLOBAL__RUNTIME__VERSION}"
+  echo "${BOLD}dotmodules${RESET} ${DIM}v${DM__GLOBAL__RUNTIME__VERSION}${RESET}" | dm_cli__indent
   echo ""
 }
 
@@ -251,19 +248,37 @@ dm_cli__list_variables() {
     "displaying the content of the full variable cache.."
   echo ""
 
-  IFS_backup="$IFS"
-  IFS="$DM__GLOBAL__NEWLINE"
-  for line in $(cat $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE)
+  cat "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" | while read -r line
   do
     variable_name="$(echo "$line" | _dm_lib__utils__trim_list 1)"
     values="$(echo "$line" | _dm_lib__utils__trim_list 2-)"
 
-    dm_cli__print "${BOLD}${variable_name}${RESET} ${values}"
-
+    wrapped_values="$(echo "$values" | fmt --width=80)"
+    _dm_cli__utils__header_multiline \
+      "${BOLD}%${DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING}s${RESET} %s\n" \
+      "$variable_name" \
+      "$wrapped_values"
   done
-  IFS="$IFS_backup"
 
   echo ""
+}
+
+_dm_cli__utils__header_multiline() {
+  format="$1"
+  header="$2"
+  lines="$3"
+
+  header_line_passed="0"
+  echo "$lines" | while read -r line
+  do
+    if [ "$header_line_passed" = "0" ]
+    then
+      printf "$format" "$header" "$line"
+      header_line_passed="1"
+    else
+      printf "$format" " " "$line"
+    fi
+  done
 }
 
 
@@ -274,7 +289,13 @@ dm_cli__register_command "m" "dm_cli__modules"
 dm_cli__register_command "modules" "dm_cli__modules"
 dm_cli__modules() {
   echo ""
-  dm_cli__print "$(_dm_cli__list_modules | column --table --separator ":")"
+  if [ "$#" = "0" ]
+  then
+    _dm_cli__list_modules | column --table --separator ":" | dm_cli__indent
+  else
+    index="$1"
+    _dm_cli__show_module "$index" | dm_cli__indent
+  fi
   echo ""
 }
 
@@ -290,13 +311,49 @@ _dm_cli__list_modules() {
     name="${BOLD}${name}${RESET}"
     version="${version}"
     status="${BOLD}${GREEN}${status}${RESET}"
-    path="$(readlink -f ${module})"
+    path="$(readlink -f "${module}")"
 
     echo "[${index}]:${name}:${version}:${status}:${path}"
     index=$(expr $index + 1)
   done
 }
 
+_dm_cli__show_module() {
+  selected_index="$1"
+  modules=$(dm_lib__modules__list)
+  module="$(echo "$modules" | _dm_lib__utils__select_line "$selected_index")"
+
+  dm_lib__debug "_dm_cli__show_module" "module selected: '${module}'"
+
+  name="$(dm_lib__config__get_name "$module")"
+  version="$(dm_lib__config__get_version "$module")"
+  status="deployed"
+  docs="$(dm_lib__config__get_docs "$module")"
+  variables="$(dm_lib__config__get_variables "$module")"
+  links="$(dm_lib__config__get_links "$module")"
+  hooks="$(dm_lib__config__get_hooks "$module")"
+
+  name="${BOLD}${name}${RESET}"
+  version="${version}"
+  status="${BOLD}${GREEN}${status}${RESET}"
+  path="$(readlink -f "${module}")"
+
+  format="${DIM}%10s${RESET} %s\n"
+  _dm_cli__utils__header_multiline "$format" "Name" "$name"
+  _dm_cli__utils__header_multiline "$format" "Version" "$version"
+  echo ""
+  _dm_cli__utils__header_multiline "$format" "Status" "$status"
+  echo ""
+  _dm_cli__utils__header_multiline "$format" "Docs" "$docs"
+  echo ""
+  _dm_cli__utils__header_multiline "$format" "Path" "$path"
+  echo ""
+  _dm_cli__utils__header_multiline "$format" "Variables" "$variables"
+  echo ""
+  _dm_cli__utils__header_multiline "$format" "Links" "$links"
+  echo ""
+  _dm_cli__utils__header_multiline "$format" "Hooks" "$hooks"
+}
 
 #==============================================================================
 # INTERPRETER
@@ -306,7 +363,8 @@ dm_cli__interpreter() {
   while [ "$DM__GLOBAL__CLI__EXIT_CONDITION" = "0" ]
   do
     dm_lib__debug "dm_cli__interpreter" "waiting for user input.."
-    read -p "$DM__GLOBAL__CLI__PROMPT" raw_command
+    printf "%s" "$DM__GLOBAL__CLI__PROMPT"
+    read -r raw_command
     if [ -z "$raw_command" ]
     then
       dm_lib__debug "dm_cli__interpreter" \
@@ -315,13 +373,13 @@ dm_cli__interpreter() {
     fi
 
     _command="$(_dm_cli__get_command "$raw_command")"
-
     dm_lib__debug "dm_cli__interpreter" "executing command: '${_command}'"
     $_command
     dm_lib__debug "dm_cli__interpreter" "command '${_command}' executed"
   done
   dm_lib__debug "dm_cli__interpreter" "interpreter finished"
 }
+
 
 #==============================================================================
 # INITIALIZATION
@@ -335,7 +393,7 @@ dm_cli__init() {
 }
 
 dm_cli__welcome_message() {
-  echo " ${BOLD}dotmodules${RESET} v${DM__GLOBAL__RUNTIME__VERSION}"
+  echo " ${BOLD}dotmodules${RESET} ${DIM}v${DM__GLOBAL__RUNTIME__VERSION}${RESET}"
 }
 
 

@@ -24,9 +24,6 @@ DM__GLOBAL__CONFIG__LIST_SEPARATOR=" "
 DM__GLOBAL__CONFIG__CACHE_DIR="../.dm.cache"
 DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.variables"
 
-# Explanation: https://github.com/koalaman/shellcheck/wiki/SC2039#c-style-escapes
-DM__GLOBAL__NEWLINE="$(printf '%b_' '\n')"; DM__GLOBAL__NEWLINE="${DM__GLOBAL__NEWLINE%_}"
-
 
 #==============================================================================
 # VARIABLES: RUNTIME
@@ -51,11 +48,13 @@ DM__GLOBAL__RUNTIME__VERSION="__INVALID__"
 # Relative path to the modules root.
 DM__GLOBAL__RUNTIME__MODULES_ROOT="__INVALID__"
 
+# Using python based variable merging script
+DM__GLOBAL__RUNTIME__BOOST__VARIABLES="0"
+
+
 #==============================================================================
 # LOG INTERFACE API
 #==============================================================================
-
-
 
 dm_lib__log() {
   echo "${RED}${BOLD}Interface incomplete: dm_lib__log not implemented!${RESET}"
@@ -148,13 +147,10 @@ dm_lib__debug_list() {
 
     dm_lib__debug "$domain" "$message"
 
-    IFS_backup="$IFS"
-    IFS="$DM__GLOBAL__NEWLINE"
-    for item in $list
+    echo "$list" | while read -r item
     do
       dm_lib__debug "$domain" "- '${item}'"
     done
-    IFS="$IFS_backup"
   fi
 } >&2
 
@@ -341,7 +337,7 @@ dm_lib__config__get_docs() {
   #============================================================================
   module_path="$1"
 
-  prefix="DOCS"
+  prefix="DOC"
 
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_line
@@ -929,67 +925,90 @@ dm_lib__variables__load() {
   _dm_lib__variables__init
 
   variables="$(_dm_lib__variables__get_variables_from_modules)"
+
+  if [ "$DM__GLOBAL__RUNTIME__BOOST__VARIABLES" = "1" ]
+  then
+    merged_variables="$(echo "$variables" | python boost/merge_variables.py)"
+  else
+    merged_variables="$(_dm_lib__variables__merge "$variables")"
+  fi
+
+  _dm_lib__variables__write_to_cache "$merged_variables"
+  dm_lib__debug "dm_lib__variables__load" "initialization finished"
+}
+
+_dm_lib__variables__merge() {
+  variables="$1"
   merged_variables=""
 
-  IFS_backup="$IFS"
-  IFS="$DM__GLOBAL__NEWLINE"
-  for variable in $variables
+  # Writing the received raw variables to the file, to be able to process them
+  # without a subshell because of the read pipe.
+  echo "$variables" > "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
+
+  dm_lib__debug "_dm_lib__variables__merge" "merging variables.."
+
+  while read -r variable
   do
     variable_name="$(echo "$variable" | _dm_lib__utils__trim_list 1)"
     new_values="$(echo "$variable" | _dm_lib__utils__trim_list 2-)"
-    dm_lib__debug "dm_lib__variables__load" \
+    dm_lib__debug "_dm_lib__variables__merge" \
       "processing variable name: '$variable_name'"
 
-    existing_variable="$(echo "$merged_variables" | grep -E "^${variable_name}\s" || true)"
+    existing_variable="$( \
+      echo "$merged_variables" | grep -E "^${variable_name}\s" || true \
+    )"
     if [ -n "$existing_variable" ]
     then
-      dm_lib__debug "dm_lib__variables__load" \
+      dm_lib__debug "_dm_lib__variables__merge" \
         "existing variable found: '$existing_variable'"
 
       existing_values="$(echo "$existing_variable" | _dm_lib__utils__trim_list 2-)"
 
       merged_values="$(_dm_lib__utils__merge_lists "${existing_values}" "${new_values}")"
 
-      dm_lib__debug "dm_lib__variables__load" \
+      dm_lib__debug "_dm_lib__variables__merge" \
         "values merged: '$merged_values'"
 
       updated_variable="${variable_name} ${merged_values}"
 
-      dm_lib__debug "dm_lib__variables__load" \
+      dm_lib__debug "_dm_lib__variables__merge" \
         "variable updated: '$updated_variable'"
 
-      merged_variables="$(\
+      merged_variables="$( \
+        # Another variable present in the pattern. Regular parameter expansion
+        # cannot be used here.
+        # shellcheck disable=SC2001
         echo "$merged_variables" | \
         sed "s%^${variable_name}.*$%${updated_variable}%" \
       )"
 
     else
-      dm_lib__debug "dm_lib__variables__load" \
+      dm_lib__debug "_dm_lib__variables__merge" \
         "variable '${variable_name}' no match in temp cache"
-      dm_lib__debug "dm_lib__variables__load" \
+      dm_lib__debug "_dm_lib__variables__merge" \
         "adding variable '${variable_name}' to temp cache"
       sorted_values="$(_dm_lib__utils__merge_lists "${new_values}" "")"
       merged_variables="$( \
         printf "%s\n%s" "$merged_variables" "${variable_name} ${sorted_values}" \
       )"
     fi
-  done
-  IFS="$IFS_backup"
-
-  _dm_lib__variables__write_to_cache "$merged_variables"
-  dm_lib__debug "dm_lib__variables__load" "initialization finished"
+  done < "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
+  echo "$merged_variables"
+  dm_lib__debug "_dm_lib__variables__merge" "variables merged"
 }
 
 _dm_lib__variables__write_to_cache() {
   merged_variables="$1"
   dm_lib__debug "_dm_lib__variables__write_to_cache" \
     "writing variables to the variable cache file"
-  echo "$merged_variables" | sort > $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
+  echo "$merged_variables" | \
+    sed '/^[[:space:]]*$/d'| \
+    sort > "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
 }
 
 dm_lib__variables__get() {
   variable="$1"
-  grep -E "^${variable}" $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE | \
+  grep -E "^${variable}" "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" | \
     _dm_lib__utils__trim_list 2-
 }
 
@@ -997,7 +1016,7 @@ _dm_lib__variables__init() {
   dm_lib__debug "_dm_lib__variables__init" \
     "initializing variable cache"
 
-  rm -f $DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE
+  rm -f "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
 
   dm_lib__debug "_dm_lib__variables__init" \
     "existing variable cache file deleted"
@@ -1010,4 +1029,3 @@ _dm_lib__variables__get_variables_from_modules() {
     dm_lib__config__get_variables "$module"
   done
 }
-

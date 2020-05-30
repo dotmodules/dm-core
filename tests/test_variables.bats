@@ -5,17 +5,31 @@ load $BATS_SUPPORT
 load test_helper
 
 
-@test "variables - variables can be loaded" {
+setup() {
+  mkdir -p "${DM__TEST__TEST_DIR}"
+  touch "${DM__TEST__TEST_DIR}/temp_var_cache"
+  export DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE=$( \
+    realpath --relative-to="$(pwd)" "${DM__TEST__TEST_DIR}/temp_var_cache" \
+  )
+
+  # Prevent to delete a nonexistent cache file
   _dm_lib__variables__init() {
     :  # nop
   }
+
+  # Prevent to writing to the cache file. Sort is added explicitly as this
+  # feature is implemented in the cache writer function that we are mocking
+  # here.
+  _dm_lib__variables__write_to_cache() {
+    merged_variables="$1"
+    echo "$merged_variables" | sort
+  }
+}
+
+@test "variables - variables can be loaded" {
   _dm_lib__variables__get_variables_from_modules() {
     echo "VAR1 v11 v12"
     echo "VAR2 v21 v22"
-  }
-  _dm_lib__variables__write_to_cache() {
-    merged_variables="$1"
-    echo "$merged_variables"
   }
   run dm_lib__variables__load
 
@@ -27,16 +41,9 @@ load test_helper
 }
 
 @test "variables - variables can be merged" {
-  _dm_lib__variables__init() {
-    :  # nop
-  }
   _dm_lib__variables__get_variables_from_modules() {
     echo "VAR1 v1 v2"
     echo "VAR1 v3 v4"
-  }
-  _dm_lib__variables__write_to_cache() {
-    merged_variables="$1"
-    echo "$merged_variables"
   }
   run dm_lib__variables__load
 
@@ -47,15 +54,8 @@ load test_helper
 }
 
 @test "variables - variables gets sorted" {
-  _dm_lib__variables__init() {
-    :  # nop
-  }
   _dm_lib__variables__get_variables_from_modules() {
     echo "VAR1 v2 v1"
-  }
-  _dm_lib__variables__write_to_cache() {
-    merged_variables="$1"
-    echo "$merged_variables"
   }
   run dm_lib__variables__load
 
@@ -66,18 +66,11 @@ load test_helper
 }
 
 @test "variables - multiple merges could be executed" {
-  _dm_lib__variables__init() {
-    :  # nop
-  }
   _dm_lib__variables__get_variables_from_modules() {
     echo "VAR2 v24 v23"
     echo "VAR3 v32 v31"
     echo "VAR1 v11"
     echo "VAR2 v22 v21"
-  }
-  _dm_lib__variables__write_to_cache() {
-    merged_variables="$1"
-    echo "$merged_variables" | sort
   }
   run dm_lib__variables__load
 
