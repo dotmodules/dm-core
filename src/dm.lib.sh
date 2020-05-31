@@ -881,9 +881,20 @@ dm_lib__variables__load() {
     "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
   _dm_lib__variables__merge
   rm -f "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
-  _dm_lib__variables__format
 
-  dm_lib__debug "dm_lib__variables__load" "initialization finished"
+  # Most minimalistic way to have control over the formatting. During testing
+  # it has to be run synchronously, but live it can be run in the background to
+  # achieve faster loading times.
+  if [ "$#" = "0" ]
+  then
+    dm_lib__debug "dm_lib__variables__load" "about to run formatting synchronously"
+    _dm_lib__variables__prettify
+  else
+    dm_lib__debug "dm_lib__variables__load" "about to run formatting in the background.."
+    _dm_lib__variables__prettify &
+  fi
+
+  dm_lib__debug "dm_lib__variables__load" "variables loaded"
 }
 
 
@@ -941,15 +952,15 @@ _dm_lib__variables__merge() {
   dm_lib__debug "_dm_lib__variables__merge" "variables merged"
 }
 
-_dm_lib__variables__format() {
-  dm_lib__debug "_dm_lib__variables__format" "sorting lines in variables cache file"
+_dm_lib__variables__prettify() {
   sort -o "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" \
     "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
 
+  # Copying the file to the temp file to be able to iterate over the lines
+  # without having to worry about modifying them inplace.
   cp "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" \
     "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
 
-  dm_lib__debug "_dm_lib__variables__format" "sorting variables line by line"
   index=1
   while read -r line
   do

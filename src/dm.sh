@@ -396,7 +396,7 @@ dm_cli__interpreter() {
 dm_cli__init() {
   dm_lib__debug "dm_cli__init" "initialization started"
   dm_lib__cache__init
-  dm_lib__variables__load
+  dm_lib__variables__load "run_formatting_in_the_backgroud"
   dm_lib__debug "dm_cli__init" "initialization finished"
 }
 
