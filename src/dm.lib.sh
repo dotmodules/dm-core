@@ -10,23 +10,27 @@
 #==============================================================================
 
 #==============================================================================
-# VARIABLES: GLOBAL
+# GLOBAL
 #==============================================================================
 
 # Name of the configuration file. This file will indicate that a directory is a
 # dm module.
 DM__GLOBAL__CONFIG__CONFIG_FILE_NAME="dm.conf"
 
-# Character used to separate lists in the whole project.
-DM__GLOBAL__CONFIG__LIST_SEPARATOR=" "
-
 # Cache directory to store data between runs
 DM__GLOBAL__CONFIG__CACHE_DIR="../.dm.cache"
+
+# File to store the variables collected on startup. It will be cleared before
+# each run.
 DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.variables"
+
+# Temporary file that only used on initialization. It will be deleted right
+# after usage.
+DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.variables.tmp"
 
 
 #==============================================================================
-# VARIABLES: RUNTIME
+# RUNTIME
 #==============================================================================
 
 # The following variables are expected to be set by the main script that uses
@@ -36,20 +40,8 @@ DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.v
 # Global  debug enabled flag. Debug will be enabled if the value is 1.
 DM__GLOBAL__RUNTIME__DEBUG_ENABLED="0"
 
-# Name of the main executable. Used for error reporting.
-DM__GLOBAL__RUNTIME__NAME="__INVALID__"
-
-# Calculated relative path to the main script.
-DM__GLOBAL__RUNTIME__PATH="__INVALID__"
-
-# Current version of the system.
-DM__GLOBAL__RUNTIME__VERSION="__INVALID__"
-
 # Relative path to the modules root.
 DM__GLOBAL__RUNTIME__MODULES_ROOT="__INVALID__"
-
-# Using python based variable merging script
-DM__GLOBAL__RUNTIME__BOOST__VARIABLES="0"
 
 
 #==============================================================================
@@ -202,8 +194,8 @@ dm_lib__modules__list() {
   # -  0 : ok
   # - !0 : error
   #============================================================================
-  debug_domain="dm_lib__modules_list"
-  dm_lib__debug "$debug_domain" "loading modules from '${DM__GLOBAL__RUNTIME__MODULES_ROOT}'"
+  dm_lib__debug "dm_lib__modules_list" \
+    "loading modules from '${DM__GLOBAL__RUNTIME__MODULES_ROOT}'"
 
   modules="$(\
     find "$DM__GLOBAL__RUNTIME__MODULES_ROOT"\
@@ -212,7 +204,7 @@ dm_lib__modules__list() {
   )"
 
   for module in $modules; do
-    echo "$(dirname "$module")"
+    dirname "$module"
   done
   return 0
 }
@@ -299,6 +291,7 @@ dm_lib__config__get_version() {
   prefix="VERSION"
 
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
+    _dm_lib__config__parse_as_list | \
     _dm_lib__utils__trim_list "1" | \
     _dm_lib__utils__select_line "1"
 }
@@ -798,7 +791,6 @@ _dm_lib__utils__trim_list() {
   items="$1"
   cat - |\
     _dm_lib__utils__normalize_whitespace | \
-    _dm_lib__utils__remove_surrounding_whitespace | \
     cut --delimiter=' ' --fields="${items}"
 }
 
@@ -874,45 +866,6 @@ _dm_lib__utils__parse_list() {
     _dm_lib__utils__remove_surrounding_whitespace
 }
 
-_dm_lib__utils__merge_lists() {
-  #============================================================================
-  # Merges two lists by sorting and deduplicating the items.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: list one
-  # - 2: list two
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Merged, sorted, deduplicate list.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
-  list_1="$1"
-  list_2="$2"
-  merged_values="${list_1} ${list_2}"
-  echo "$merged_values" | xargs -n1 | sort | uniq | xargs
-}
-
-
 
 #==============================================================================
 # SUBMODULE: VARIABLES
@@ -924,87 +877,15 @@ dm_lib__variables__load() {
 
   _dm_lib__variables__init
 
-  variables="$(_dm_lib__variables__get_variables_from_modules)"
+  _dm_lib__variables__get_variables_from_modules > \
+    "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
+  _dm_lib__variables__merge
+  rm -f "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
+  _dm_lib__variables__format
 
-  if [ "$DM__GLOBAL__RUNTIME__BOOST__VARIABLES" = "1" ]
-  then
-    merged_variables="$(echo "$variables" | python boost/merge_variables.py)"
-  else
-    merged_variables="$(_dm_lib__variables__merge "$variables")"
-  fi
-
-  _dm_lib__variables__write_to_cache "$merged_variables"
   dm_lib__debug "dm_lib__variables__load" "initialization finished"
 }
 
-_dm_lib__variables__merge() {
-  variables="$1"
-  merged_variables=""
-
-  # Writing the received raw variables to the file, to be able to process them
-  # without a subshell because of the read pipe.
-  echo "$variables" > "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
-
-  dm_lib__debug "_dm_lib__variables__merge" "merging variables.."
-
-  while read -r variable
-  do
-    variable_name="$(echo "$variable" | _dm_lib__utils__trim_list 1)"
-    new_values="$(echo "$variable" | _dm_lib__utils__trim_list 2-)"
-    dm_lib__debug "_dm_lib__variables__merge" \
-      "processing variable name: '$variable_name'"
-
-    existing_variable="$( \
-      echo "$merged_variables" | grep -E "^${variable_name}\s" || true \
-    )"
-    if [ -n "$existing_variable" ]
-    then
-      dm_lib__debug "_dm_lib__variables__merge" \
-        "existing variable found: '$existing_variable'"
-
-      existing_values="$(echo "$existing_variable" | _dm_lib__utils__trim_list 2-)"
-
-      merged_values="$(_dm_lib__utils__merge_lists "${existing_values}" "${new_values}")"
-
-      dm_lib__debug "_dm_lib__variables__merge" \
-        "values merged: '$merged_values'"
-
-      updated_variable="${variable_name} ${merged_values}"
-
-      dm_lib__debug "_dm_lib__variables__merge" \
-        "variable updated: '$updated_variable'"
-
-      merged_variables="$( \
-        # Another variable present in the pattern. Regular parameter expansion
-        # cannot be used here.
-        # shellcheck disable=SC2001
-        echo "$merged_variables" | \
-        sed "s%^${variable_name}.*$%${updated_variable}%" \
-      )"
-
-    else
-      dm_lib__debug "_dm_lib__variables__merge" \
-        "variable '${variable_name}' no match in temp cache"
-      dm_lib__debug "_dm_lib__variables__merge" \
-        "adding variable '${variable_name}' to temp cache"
-      sorted_values="$(_dm_lib__utils__merge_lists "${new_values}" "")"
-      merged_variables="$( \
-        printf "%s\n%s" "$merged_variables" "${variable_name} ${sorted_values}" \
-      )"
-    fi
-  done < "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
-  echo "$merged_variables"
-  dm_lib__debug "_dm_lib__variables__merge" "variables merged"
-}
-
-_dm_lib__variables__write_to_cache() {
-  merged_variables="$1"
-  dm_lib__debug "_dm_lib__variables__write_to_cache" \
-    "writing variables to the variable cache file"
-  echo "$merged_variables" | \
-    sed '/^[[:space:]]*$/d'| \
-    sort > "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
-}
 
 dm_lib__variables__get() {
   variable="$1"
@@ -1013,13 +894,10 @@ dm_lib__variables__get() {
 }
 
 _dm_lib__variables__init() {
-  dm_lib__debug "_dm_lib__variables__init" \
-    "initializing variable cache"
-
   rm -f "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
-
+  touch "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
   dm_lib__debug "_dm_lib__variables__init" \
-    "existing variable cache file deleted"
+    "variable cache file initialized"
 }
 
 _dm_lib__variables__get_variables_from_modules() {
@@ -1028,4 +906,59 @@ _dm_lib__variables__get_variables_from_modules() {
   do
     dm_lib__config__get_variables "$module"
   done
+}
+
+_dm_lib__variables__merge() {
+  while read -r variable
+  do
+    variable_name="${variable%% *}"  # getting the first element from the list
+    values="${variable#* }"  # getting all items but the first
+    dm_lib__debug "_dm_lib__variables__merge" \
+      "processing variable '${variable_name}' with values '${values}'"
+
+    existing_variable="$( \
+      grep -E "^${variable_name}\s" "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" || true \
+    )"
+    if [ -n "$existing_variable" ]
+    then
+      dm_lib__debug "_dm_lib__variables__merge" \
+        "existing variable found: '$existing_variable'"
+
+      existing_values="${existing_variable#* }"  # getting all items but the first
+      updated_variable="${variable_name} ${existing_values} ${values}"
+
+      dm_lib__debug "_dm_lib__variables__merge" \
+        "updating variable '${variable_name}' in cache"
+      sed -i "s%^${variable_name}.*$%${updated_variable}%" \
+        "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
+    else
+      dm_lib__debug "_dm_lib__variables__merge" \
+        "variable '${variable_name}' was not found in the cache, writing it directly"
+      echo "${variable_name} ${values}" >> "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
+    fi
+  done < "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
+
+  dm_lib__debug "_dm_lib__variables__merge" "variables merged"
+}
+
+_dm_lib__variables__format() {
+  dm_lib__debug "_dm_lib__variables__format" "sorting lines in variables cache file"
+  sort -o "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" \
+    "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
+
+  cp "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" \
+    "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
+
+  dm_lib__debug "_dm_lib__variables__format" "sorting variables line by line"
+  index=1
+  while read -r line
+  do
+    variable_name="${line%% *}"  # getting the first element from the list
+    values="${line#* }"  # getting all items but the first
+    sorted_values="$(echo "$values" | xargs -n1 | sort | uniq | xargs)"
+    sed -i "${index}s;.*;${variable_name} ${sorted_values};" \
+      "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
+    index=$((index + 1))
+  done < "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
+  rm -f "$DM__GLOBAL__CONFIG__TEMP__VARIABLES_FILE"
 }

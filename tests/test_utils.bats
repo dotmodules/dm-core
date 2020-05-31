@@ -65,8 +65,8 @@ load test_helper
   assert_output "$expected"
 }
 
-@test "utils - trim_list - messy list gets normalized" {
-  input="     item1     item2  item3                "
+@test "utils - trim_list - whitespace gets squeezed" {
+  input="item1     item2  item3"
   expected="item1 item2"
   dummy_function() {
     echo "$input" | _dm_lib__utils__trim_list 1-2

@@ -10,7 +10,6 @@ set -u
 #==============================================================================
 # GLOBAL SCRIPT BASED VARIABLES
 
-DM__GLOBAL__RUNTIME__NAME="$(basename "$0")"
 DM__GLOBAL__RUNTIME__PATH="$(dirname "$(readlink -f "$0")")"
 DM__GLOBAL__RUNTIME__VERSION=$(cat "${DM__GLOBAL__RUNTIME__PATH}/../VERSION")
 
@@ -25,17 +24,10 @@ cd "${DM__GLOBAL__RUNTIME__PATH}"
 
 . ./dm.lib.sh
 
-DM__GLOBAL__RUNTIME__NAME="$(basename "$0")"
-DM__GLOBAL__RUNTIME__PATH="$(dirname "$(readlink -f "$0")")"
-DM__GLOBAL__RUNTIME__VERSION=$(cat "${DM__GLOBAL__RUNTIME__PATH}/../VERSION")
-
 DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING="12"
 
 DM__GLOBAL__CLI__PROMPT=" ${BOLD}dm${RESET} # "
 DM__GLOBAL__CLI__EXIT_CONDITION="0"
-
-# TODO: make this makefile based
-# DM__GLOBAL__RUNTIME__BOOST__VARIABLES="1"
 
 #==============================================================================
 # DOCUMENTATION
@@ -173,7 +165,7 @@ _dm_cli__get_command() {
 
   hotkey=$(echo "$raw_command" | _dm_lib__utils__trim_list 1)
   word_count=$(echo "$raw_command" | wc -w)
-  if [ $word_count -gt 1 ]
+  if [ "$word_count" -gt 1 ]
   then
     params=$(echo "$raw_command" | _dm_lib__utils__trim_list 2-)
     dm_lib__debug "_dm_cli__get_command" \
@@ -192,13 +184,13 @@ _dm_cli__get_command() {
     _command=$(echo "$result" | _dm_lib__utils__trim_list 2)
     dm_lib__debug "_dm_cli__get_command" \
       "command matched: '${_command}'"
-    command="$_command $params"
+    _command="$_command $params"
   else
     dm_lib__debug "_dm_cli__get_command" \
       "no match for hotkey, using default command: '${DM__RUNTIME__DEFAULT_COMMAND}'"
     _command="$DM__RUNTIME__DEFAULT_COMMAND"
   fi
-  echo "${_command} ${params}" | _dm_lib__utils__remove_surrounding_whitespace
+  echo "$_command" | _dm_lib__utils__remove_surrounding_whitespace
 }
 
 
@@ -248,7 +240,7 @@ dm_cli__list_variables() {
     "displaying the content of the full variable cache.."
   echo ""
 
-  cat "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" | while read -r line
+  while read -r line
   do
     variable_name="$(echo "$line" | _dm_lib__utils__trim_list 1)"
     values="$(echo "$line" | _dm_lib__utils__trim_list 2-)"
@@ -258,7 +250,7 @@ dm_cli__list_variables() {
       "${BOLD}%${DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING}s${RESET} %s\n" \
       "$variable_name" \
       "$wrapped_values"
-  done
+  done < "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
 
   echo ""
 }
@@ -273,9 +265,13 @@ _dm_cli__utils__header_multiline() {
   do
     if [ "$header_line_passed" = "0" ]
     then
+      # Te point here is to be able to receive dynamic formats.
+      # shellcheck disable=SC2059
       printf "$format" "$header" "$line"
       header_line_passed="1"
     else
+      # Also here.
+      # shellcheck disable=SC2059
       printf "$format" " " "$line"
     fi
   done
@@ -314,13 +310,24 @@ _dm_cli__list_modules() {
     path="$(readlink -f "${module}")"
 
     echo "[${index}]:${name}:${version}:${status}:${path}"
-    index=$(expr $index + 1)
+    index=$((index + 1))
   done
 }
 
 _dm_cli__show_module() {
   selected_index="$1"
+  dm_lib__debug "_dm_cli__show_module" "selected index: ${selected_index}"
   modules=$(dm_lib__modules__list)
+
+  module_count="$(echo "$modules" | wc -l)"
+  dm_lib__debug "_dm_cli__show_module" "module count: ${module_count}"
+
+  if [ "$selected_index" -gt "$module_count" ]
+  then
+    dm_lib__debug "_dm_cli__show_module" "invalid selected index"
+    echo "${RED}Invalid module index! It should be in the range of 1-${module_count}.${RESET}"
+    return
+  fi
   module="$(echo "$modules" | _dm_lib__utils__select_line "$selected_index")"
 
   dm_lib__debug "_dm_cli__show_module" "module selected: '${module}'"
@@ -376,6 +383,7 @@ dm_cli__interpreter() {
     dm_lib__debug "dm_cli__interpreter" "executing command: '${_command}'"
     $_command
     dm_lib__debug "dm_cli__interpreter" "command '${_command}' executed"
+
   done
   dm_lib__debug "dm_cli__interpreter" "interpreter finished"
 }

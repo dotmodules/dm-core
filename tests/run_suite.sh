@@ -40,7 +40,7 @@ run_suite() {
   # Hack to be able to load the shell script with bats, as it's only capable of
   # loading `.bash` extensions..
   cp ${DM_LIB_MUT} "${DM_LIB_MUT}.bash"
-  ${BATS_EXECUTABLE} -t ./*.bats
+  ${BATS_EXECUTABLE} ./*.bats
   rm "${DM_LIB_MUT}.bash"
 }
 
@@ -111,4 +111,4 @@ log() {
 
 install_bats_dependencies
 run_suite
-# run_shellcheck
+run_shellcheck
