@@ -1,4 +1,7 @@
 load $DM_LIB_MUT
+load $BATS_MOCK
+load $BATS_ASSERT
+load $BATS_SUPPORT
 load test_helper
 
 setup() {
@@ -28,10 +31,11 @@ setup() {
   }
   run dm_lib__variables__load
 
-  test $status -eq 0
-  test ${#lines[@]} -eq 2
-  test "${lines[0]}" = "VAR1 v11 v12"
-  test "${lines[1]}" = "VAR2 v21 v22"
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 2
+
+  assert_line --index 0 "VAR1 v11 v12"
+  assert_line --index 1 "VAR2 v21 v22"
 }
 
 @test "variables - variables can be merged" {
@@ -41,9 +45,10 @@ setup() {
   }
   run dm_lib__variables__load
 
-  test $status -eq 0
-  test ${#lines[@]} -eq 1
-  test "${lines[0]}" = "VAR1 v1 v2 v3 v4"
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 1
+
+  assert_line --index 0 "VAR1 v1 v2 v3 v4"
 }
 
 @test "variables - variables gets sorted" {
@@ -52,9 +57,10 @@ setup() {
   }
   run dm_lib__variables__load
 
-  test $status -eq 0
-  test ${#lines[@]} -eq 1
-  test "${lines[0]}" = "VAR1 v1 v2"
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 1
+
+  assert_line --index 0 "VAR1 v1 v2"
 }
 
 @test "variables - multiple merges could be executed" {
@@ -66,9 +72,10 @@ setup() {
   }
   run dm_lib__variables__load
 
-  test $status -eq 0
-  test ${#lines[@]} -eq 3
-  test "${lines[0]}" = "VAR1 v11"
-  test "${lines[1]}" = "VAR2 v21 v22 v23 v24"
-  test "${lines[2]}" = "VAR3 v31 v32"
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 3
+
+  assert_line --index 0 "VAR1 v11"
+  assert_line --index 1 "VAR2 v21 v22 v23 v24"
+  assert_line --index 2 "VAR3 v31 v32"
 }

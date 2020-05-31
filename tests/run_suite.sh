@@ -15,8 +15,20 @@ cd "$(dirname "$(readlink -f "$0")")"
 TEST_TEMP_DIR="bats_resources"
 
 BATS_CORE_REPO_URL="https://github.com/bats-core/bats-core.git"          # https://github.com/bats-core/bats-core
+BATS_MOCK_REPO_URL="https://github.com/jasonkarns/bats-mock.git"         # https://github.com/jasonkarns/bats-mock
+BATS_ASSERT_REPO_URL="https://github.com/bats-core/bats-assert.git"      # https://github.com/jasonkarns/bats-assert-1
+BATS_SUPPORT_REPO_URL="https://github.com/ztombol/bats-support.git"      # https://github.com/ztombol/bats-support
+
 BATS_CORE_REPO_DIR="bats"
+BATS_MOCK_REPO_DIR="mocks"
+BATS_ASSERT_REPO_DIR="assert"
+BATS_SUPPORT_REPO_DIR="support"
+
 BATS_EXECUTABLE="${TEST_TEMP_DIR}/${BATS_CORE_REPO_DIR}/bin/bats"
+
+export BATS_MOCK="${TEST_TEMP_DIR}/${BATS_MOCK_REPO_DIR}/stub"
+export BATS_ASSERT="${TEST_TEMP_DIR}/${BATS_ASSERT_REPO_DIR}/load"
+export BATS_SUPPORT="${TEST_TEMP_DIR}/${BATS_SUPPORT_REPO_DIR}/load"
 
 export DM_LIB_MUT="../src/dm.lib.sh"
 
@@ -28,7 +40,7 @@ run_suite() {
   # Hack to be able to load the shell script with bats, as it's only capable of
   # loading `.bash` extensions..
   cp ${DM_LIB_MUT} "${DM_LIB_MUT}.bash"
-  ${BATS_EXECUTABLE} --tap ./*.bats
+  ${BATS_EXECUTABLE} -t ./*.bats
   rm "${DM_LIB_MUT}.bash"
 }
 
@@ -67,6 +79,9 @@ install_bats_dependencies() {
     cd ${TEST_TEMP_DIR}
 
     clone_repo ${BATS_CORE_REPO_URL} ${BATS_CORE_REPO_DIR}
+    clone_repo ${BATS_MOCK_REPO_URL} ${BATS_MOCK_REPO_DIR}
+    clone_repo ${BATS_ASSERT_REPO_URL} ${BATS_ASSERT_REPO_DIR}
+    clone_repo ${BATS_SUPPORT_REPO_URL} ${BATS_SUPPORT_REPO_DIR}
 
     success "Done. Bats dependencies cloned."
 
@@ -96,4 +111,4 @@ log() {
 
 install_bats_dependencies
 run_suite
-run_shellcheck
+# run_shellcheck
