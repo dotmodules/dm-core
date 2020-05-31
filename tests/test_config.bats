@@ -1,16 +1,13 @@
 load $DM_LIB_MUT
-load $BATS_MOCK
-load $BATS_ASSERT
-load $BATS_SUPPORT
 load test_helper
 
-setup() {
+setup_dirs() {
   export dummy_module_path="${DM__TEST__TEST_DIR}/module"
   mkdir -p $dummy_module_path
   export dummy_config_file="${dummy_module_path}/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
 }
 
-teardown() {
+teardown_dirs() {
   rm -r "$dummy_module_path"
   mkdir -p "$dummy_module_path"
 }
@@ -19,6 +16,8 @@ teardown() {
 # CONFIG LINE EXTRACTION
 
 @test "config - relevant lines can be extracted" {
+  setup_dirs
+
   prefix="PREFIX"
   expected="${prefix} this line is expected."
 
@@ -28,13 +27,16 @@ teardown() {
 
   run _dm_lib__config__get_lines_for_prefix "$dummy_config_file" "$prefix"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
+  test $status -eq 0
+  test ${#lines[@]} -eq 1
+  test "${lines[0]}" = "$expected"
 
-  assert_line --index 0 "$expected"
+  teardown_dirs
 }
 
 @test "config - only the right ones are selected" {
+  setup_dirs
+
   prefix="PREFIX"
   expected="${prefix} this line is expected."
 
@@ -44,13 +46,16 @@ teardown() {
 
   run _dm_lib__config__get_lines_for_prefix "$dummy_config_file" "$prefix"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
+  test $status -eq 0
+  test ${#lines[@]} -eq 1
+  test "${lines[0]}" = "$expected"
 
-  assert_line --index 0 "$expected"
+  teardown_dirs
 }
 
 @test "config - messy whitespace can be tolerated" {
+  setup_dirs
+
   prefix="PREFIX"
   expected="            ${prefix} this line is expected."
 
@@ -60,10 +65,11 @@ teardown() {
 
   run _dm_lib__config__get_lines_for_prefix "$dummy_config_file" "$prefix"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
+  test $status -eq 0
+  test ${#lines[@]} -eq 1
+  test "${lines[0]}" = "$expected"
 
-  assert_line --index 0 "$expected"
+  teardown_dirs
 }
 
 
@@ -80,8 +86,8 @@ teardown() {
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "config - prefix and whitespace gets removed" {
@@ -94,8 +100,8 @@ teardown() {
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 
@@ -111,8 +117,8 @@ teardown() {
 
   run dm_lib__config__get_name "dummy_module_path"
 
-  assert test $status -eq 0
-  assert_output "$name"
+  test $status -eq 0
+  test "$output" = "$name"
 }
 
 @test "config - parse module name - surrounding whitespace gets removed" {
@@ -124,8 +130,8 @@ teardown() {
 
   run dm_lib__config__get_name "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$name"
+  test $status -eq 0
+  test "$output" = "$name"
 }
 
 @test "config - parse module name - only the first name line is kept" {
@@ -139,10 +145,9 @@ teardown() {
 
   run dm_lib__config__get_name "dummy_module_path"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
-
-  assert_line --index 0 "$name_1"
+  test $status -eq 0
+  test ${#lines[@]} -eq 1
+  test "${lines[0]}" = "$name_1"
 }
 
 
@@ -158,8 +163,8 @@ teardown() {
 
   run dm_lib__config__get_version "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$version"
+  test $status -eq 0
+  test "$output" = "$version"
 }
 
 @test "config - parse module version - only first word is captured" {
@@ -171,8 +176,8 @@ teardown() {
 
   run dm_lib__config__get_version "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$version"
+  test $status -eq 0
+  test "$output" = "$version"
 }
 
 @test "config - parse module version - whitespace ignored" {
@@ -184,8 +189,8 @@ teardown() {
 
   run dm_lib__config__get_version "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$version"
+  test $status -eq 0
+  test "$output" = "$version"
 }
 
 @test "config - parse module version - only the first verion line is kept" {
@@ -199,10 +204,9 @@ teardown() {
 
   run dm_lib__config__get_name "dummy_module_path"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
-
-  assert_line --index 0 "$version_1"
+  test $status -eq 0
+  test ${#lines[@]} -eq 1
+  test "${lines[0]}" = "$version_1"
 }
 
 
@@ -218,8 +222,8 @@ teardown() {
 
   run dm_lib__config__get_docs "dummy_module_path"
 
-  assert test $status -eq 0
-  assert_output "$docs"
+  test $status -eq 0
+  test "$output" = "$docs"
 }
 
 @test "config - parse module docs - surrounding whitespace gets removed" {
@@ -231,8 +235,8 @@ teardown() {
 
   run dm_lib__config__get_docs "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$docs"
+  test $status -eq 0
+  test "$output" = "$docs"
 }
 
 @test "config - parse module docs - every line is kept" {
@@ -246,11 +250,10 @@ teardown() {
 
   run dm_lib__config__get_docs "dummy_module_path"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 2
-
-  assert_line --index 0 "$docs_1"
-  assert_line --index 1 "$docs_2"
+  test $status -eq 0
+  test ${#lines[@]} -eq 2
+  test "${lines[0]}" = "$docs_1"
+  test "${lines[1]}" = "$docs_2"
 }
 
 
@@ -268,11 +271,10 @@ teardown() {
 
   run dm_lib__config__get_variables "dummy_module_path"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 2
-
-  assert_line --index 0 "$variable_1"
-  assert_line --index 1 "$variable_2"
+  test $status -eq 0
+  test ${#lines[@]} -eq 2
+  test "${lines[0]}" = "$variable_1"
+  test "${lines[1]}" = "$variable_2"
 }
 
 @test "config - parse registered variables - whitespace gets normalized" {
@@ -285,8 +287,8 @@ teardown() {
 
   run dm_lib__config__get_variables "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$expected_variable"
+  test $status -eq 0
+  test "$output" = "$expected_variable"
 }
 
 
@@ -304,11 +306,10 @@ teardown() {
 
   run dm_lib__config__get_links "dummy_module_path"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 2
-
-  assert_line --index 0 "$link_1"
-  assert_line --index 1 "$link_2"
+  test $status -eq 0
+  test ${#lines[@]} -eq 2
+  test "${lines[0]}" = "$link_1"
+  test "${lines[1]}" = "$link_2"
 }
 
 @test "config - parse links - only the two items are kept while whitespace ignored" {
@@ -321,8 +322,8 @@ teardown() {
 
   run dm_lib__config__get_links "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$link_expected"
+  test $status -eq 0
+  test "$output" = "$link_expected"
 }
 
 
@@ -340,11 +341,10 @@ teardown() {
 
   run dm_lib__config__get_hooks "dummy_module_path"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 2
-
-  assert_line --index 0 "$hook_1"
-  assert_line --index 1 "$hook_2"
+  test $status -eq 0
+  test ${#lines[@]} -eq 2
+  test "${lines[0]}" = "$hook_1"
+  test "${lines[1]}" = "$hook_2"
 }
 
 @test "config - parse registered hooks - whitespace gets normalized" {
@@ -357,8 +357,8 @@ teardown() {
 
   run dm_lib__config__get_hooks "dummy_module_path"
 
-  assert test "$status" -eq 0
-  assert_output "$expected_hook"
+  test $status -eq 0
+  test "$output" = "$expected_hook"
 }
 
 
@@ -366,6 +366,8 @@ teardown() {
 # FULL CONFIG FILE
 
 @test "config - tidy config file can be parsed" {
+  setup_dirs
+
   name="My module"
   echo "NAME ${name}" >> $dummy_config_file
 
@@ -386,31 +388,35 @@ teardown() {
 
   # Parse file
   run dm_lib__config__get_name "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$name"
+  test $status -eq 0
+  test "$output" = "$name"
 
   run dm_lib__config__get_version "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$version"
+  test $status -eq 0
+  test "$output" = "$version"
 
   run dm_lib__config__get_docs "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$docs"
+  test $status -eq 0
+  test "$output" = "$docs"
 
   run dm_lib__config__get_variables "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$variable"
+  test $status -eq 0
+  test "$output" = "$variable"
 
   run dm_lib__config__get_links "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$link"
+  test $status -eq 0
+  test "$output" = "$link"
 
   run dm_lib__config__get_hooks "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$hook"
+  test $status -eq 0
+  test "$output" = "$hook"
+
+  teardown_dirs
 }
 
 @test "config - messy config file can be parsed" {
+  setup_dirs
+
   name="My module"
   echo "  NAME     ${name}   " >> $dummy_config_file
 
@@ -431,26 +437,28 @@ teardown() {
 
   # Parse file
   run dm_lib__config__get_name "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$name"
+  test $status -eq 0
+  test "$output" = "$name"
 
   run dm_lib__config__get_version "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$version"
+  test $status -eq 0
+  test "$output" = "$version"
 
   run dm_lib__config__get_docs "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$docs"
+  test $status -eq 0
+  test "$output" = "$docs"
 
   run dm_lib__config__get_variables "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$variable"
+  test $status -eq 0
+  test "$output" = "$variable"
 
   run dm_lib__config__get_links "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$link"
+  test $status -eq 0
+  test "$output" = "$link"
 
   run dm_lib__config__get_hooks "$dummy_module_path"
-  assert test "$status" -eq 0
-  assert_output "$hook"
+  test $status -eq 0
+  test "$output" = "$hook"
+
+  teardown_dirs
 }

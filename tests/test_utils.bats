@@ -1,7 +1,4 @@
 load $DM_LIB_MUT
-load $BATS_MOCK
-load $BATS_ASSERT
-load $BATS_SUPPORT
 load test_helper
 
 
@@ -13,8 +10,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - remove_surrounding_whitespace - whitespace gets removed" {
@@ -25,8 +22,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - trim_list - first item can be acuired" {
@@ -37,8 +34,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - trim_list - itervals can be used" {
@@ -49,8 +46,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - trim_list - endless interval can be used" {
@@ -61,8 +58,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - trim_list - messy list gets normalized" {
@@ -73,8 +70,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - select_line - line can be selected case 1" {
@@ -90,8 +87,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - select_line - line can be selected case 2" {
@@ -107,8 +104,8 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
 
 @test "utils - parse_list - messy list gets normalized" {
@@ -119,6 +116,6 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
-  assert_output "$expected"
+  test $status -eq 0
+  test "$output" = "$expected"
 }
