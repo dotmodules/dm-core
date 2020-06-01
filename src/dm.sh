@@ -139,16 +139,31 @@ DM__GLOBAL__RUNTIME__DEBUG_ENABLED="$2"
 # COMMAND REGISTERING
 
 DM__RUNTIME__REGISTERED_COMMANDS=""
+DM__RUNTIME__REGISTERED_COMMAND_DOCS=""
 DM__RUNTIME__DEFAULT_COMMAND=""
 
 dm_cli__register_command() {
-  hotkey="$1"
+  hotkeys="$1"
   _command="$2"
-  DM__RUNTIME__REGISTERED_COMMANDS="$( \
-    echo "${DM__RUNTIME__REGISTERED_COMMANDS}"; echo "${hotkey} ${_command}" \
+  doc="$3"
+
+  for hotkey in $(echo "$hotkeys" | sed 's/|/ /g')
+  do
+    dm_lib__debug "dm_cli__register_command" \
+      "processing hotkey '${hotkey}'"
+    DM__RUNTIME__REGISTERED_COMMANDS="$( \
+      echo "${DM__RUNTIME__REGISTERED_COMMANDS}"; \
+      echo "${hotkey} ${_command}" \
+    )"
+  done
+
+  DM__RUNTIME__REGISTERED_COMMAND_DOCS="$( \
+    echo "${DM__RUNTIME__REGISTERED_COMMAND_DOCS}"; \
+    echo "${hotkeys} ${doc}" \
   )"
+
   dm_lib__debug "dm_cli__register_command" \
-    "command '${_command}' registered for hotkey '${hotkey}'"
+    "command '${_command}' registered for hotkey '${hotkeys}'"
 }
 
 dm_cli__register_default_command() {
@@ -197,9 +212,7 @@ _dm_cli__get_command() {
 #==============================================================================
 # COMMAND: EXIT
 
-dm_cli__register_command "q" "dm_cli__interpreter_quit"
-dm_cli__register_command "quit" "dm_cli__interpreter_quit"
-dm_cli__register_command "exit" "dm_cli__interpreter_quit"
+dm_cli__register_command "q|quit|exit" "dm_cli__interpreter_quit" "Exits the dotmodules interpreter."
 dm_cli__interpreter_quit() {
   dm_lib__debug "dm_cli__interpreter_quit" \
     "interpreter quit called, setting exit condition.."
@@ -208,21 +221,30 @@ dm_cli__interpreter_quit() {
 
 
 #==============================================================================
-# COMMAND: PRINT HELP
+# COMMAND: HELP
 
-dm_cli__register_command "help" "dm_cli__indent_help"
+dm_cli__register_command "h|help" "dm_cli__indent_help" "Prints out this help message. This is the default command."
 dm_cli__register_default_command "dm_cli__indent_help"
 dm_cli__indent_help() {
   echo ""
-  echo "This is the help message.." | dm_cli__indent
+  echo "$DM__RUNTIME__REGISTERED_COMMAND_DOCS" | sed '/^[[:space:]]*$/d' | while read -r line
+  do
+    hotkeys="${line%% *}"  # getting the first element from the list
+    doc="${line#* }"  # getting all items but the first
+    wrapped_doc="$(echo "$doc" | fmt --split-only --width=80)"
+    _dm_cli__utils__header_multiline \
+      "${BOLD}${CYAN}%13s${RESET} %s\n" \
+      "$hotkeys" \
+      "$wrapped_doc"
+  done
   echo ""
 }
 
 
 #==============================================================================
-# COMMAND: PRINT VERSION
+# COMMAND: VERSION
 
-dm_cli__register_command "version" "dm_cli__indent_version"
+dm_cli__register_command "version" "dm_cli__indent_version" "Prints out the dotmodules version."
 dm_cli__indent_version() {
   echo ""
   echo "${BOLD}dotmodules${RESET} ${DIM}v${DM__GLOBAL__RUNTIME__VERSION}${RESET}" | dm_cli__indent
@@ -233,8 +255,7 @@ dm_cli__indent_version() {
 #==============================================================================
 # COMMAND: VARIABLES
 
-dm_cli__register_command "v" "dm_cli__list_variables"
-dm_cli__register_command "variables" "dm_cli__list_variables"
+dm_cli__register_command "v|variables" "dm_cli__list_variables" "Prints out all collected variables."
 dm_cli__list_variables() {
   dm_lib__debug "dm_cli__list_variables" \
     "displaying the content of the full variable cache.."
@@ -303,18 +324,17 @@ _dm_cli__utils__header_multiline() {
       # shellcheck disable=SC2059
       printf "$format" "$target_header" "$wrapped_line"
     done < inner_temp_pipe
-    rm inner_temp_pipe
+    rm -f inner_temp_pipe
 
   done < outer_temp_pipe
-  rm outer_temp_pipe
+  rm -f outer_temp_pipe
 }
 
 
 #==============================================================================
-# COMMAND: LIST MODULES
+# COMMAND: MODULES
 
-dm_cli__register_command "m" "dm_cli__modules"
-dm_cli__register_command "modules" "dm_cli__modules"
+dm_cli__register_command "m|modules" "dm_cli__modules" "Lists all available modules by default. In the list there is an assigned index for each module that can be used as a parameter to show the given module details."
 dm_cli__modules() {
   echo ""
   if [ "$#" = "0" ]
@@ -357,7 +377,7 @@ _dm_cli__show_module() {
   if [ "$selected_index" -gt "$module_count" ]
   then
     dm_lib__debug "_dm_cli__show_module" "invalid selected index"
-    echo "${RED}Invalid module index! It should be in the range of 1-${module_count}.${RESET}"
+    echo "${RED}Invalid module index! Should be in range 1-${module_count}.${RESET}"
     return
   fi
   module="$(echo "$modules" | _dm_lib__utils__select_line "$selected_index")"
@@ -371,6 +391,8 @@ _dm_cli__show_module() {
   variables="$(dm_lib__config__get_variables "$module")"
   links="$(dm_lib__config__get_links "$module")"
   hooks="$(dm_lib__config__get_hooks "$module")"
+
+  links="$(echo "$links" | sed "s/^/[${BOLD}${GREEN}ok${RESET}] /")"
 
   name="${BOLD}${name}${RESET}"
   version="${version}"
@@ -399,7 +421,7 @@ _dm_cli__show_module() {
     _dm_cli__utils__header_multiline \
       "${DIM}${YELLOW}%10s${RESET} ${DIM}%s${RESET}\n" \
       "Warning" \
-      "Consider reformatting the module's documentation to not to exceed the 80 character line length and preventing automatic line wrapping."
+      "Consider reformatting the module's documentation to not to exceed the 80 character line length and prevent automatic line wrapping if the way it wraps the lines is not the best. You can turn off this warning by modifying your main Makefile in the config section."
   fi
 }
 
@@ -453,4 +475,3 @@ dm_cli__welcome_message() {
 dm_cli__welcome_message
 dm_cli__init
 dm_cli__interpreter
-

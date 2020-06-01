@@ -249,6 +249,9 @@ dm_lib__config__get_name() {
 
   prefix="NAME"
 
+  dm_lib__debug "dm_lib__config__get_name" \
+    "getting prefix '${prefix}' from module '${module_path}'.."
+
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_line | \
     _dm_lib__utils__select_line "1"
@@ -289,6 +292,9 @@ dm_lib__config__get_version() {
   module_path="$1"
 
   prefix="VERSION"
+
+  dm_lib__debug "dm_lib__config__get_version" \
+    "getting prefix '${prefix}' from module '${module_path}'.."
 
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_list | \
@@ -332,6 +338,9 @@ dm_lib__config__get_docs() {
 
   prefix="DOC"
 
+  dm_lib__debug "dm_lib__config__get_docs" \
+    "getting prefix '${prefix}' from module '${module_path}'.."
+
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_line | \
     _dm_lib__config__remove_leading_pipe
@@ -347,11 +356,10 @@ dm_lib__config__get_docs() {
 # - None
 #
 # Arguments
-# - 1: Module path - this is the path to the module the docs should be
-#      loaded from.
+# - None
 #
 # StdIn
-# - None
+# - Lines that potentially contains the pipe character.
 #
 #============================================================================
 # OUTPUT
@@ -360,7 +368,7 @@ dm_lib__config__get_docs() {
 # - None
 #
 # StdOut
-# - Module documentation optionally in multiple lines.
+# - Lines without the leading pipe prefix.
 #
 # StdErr
 # - Error that occured during operation.
@@ -407,10 +415,11 @@ _dm_lib__config__remove_leading_pipe() {
 dm_lib__config__get_variables() {
   module_path="$1"
 
-  debug_domain="dm_lib__config__get_variables"
   prefix="REGISTER"
 
-  dm_lib__debug "$debug_domain" "getting lines from config file for prefix '${prefix}' in moodule '${module_path}'.."
+  dm_lib__debug "dm_lib__config__get_variables" \
+    "getting prefix '${prefix}' from module '${module_path}'.."
+
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_list
 }
@@ -450,6 +459,9 @@ dm_lib__config__get_links() {
   module_path="$1"
 
   prefix="LINK"
+
+  dm_lib__debug "dm_lib__config__get_links" \
+    "getting prefix '${prefix}' from module '${module_path}'.."
 
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_list | \
@@ -491,6 +503,9 @@ dm_lib__config__get_hooks() {
   module_path="$1"
 
   prefix="HOOK"
+
+  dm_lib__debug "dm_lib__config__get_hooks" \
+    "getting prefix '${prefix}' from module '${module_path}'.."
 
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
     _dm_lib__config__parse_as_list
