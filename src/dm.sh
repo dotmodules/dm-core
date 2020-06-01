@@ -245,7 +245,7 @@ dm_cli__list_variables() {
     variable_name="$(echo "$line" | _dm_lib__utils__trim_list 1)"
     values="$(echo "$line" | _dm_lib__utils__trim_list 2-)"
 
-    wrapped_values="$(echo "$values" | fmt --width=80)"
+    wrapped_values="$(echo "$values" | fmt --split-only --width=80)"
     _dm_cli__utils__header_multiline \
       "${BOLD}%${DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING}s${RESET} %s\n" \
       "$variable_name" \
@@ -260,21 +260,53 @@ _dm_cli__utils__header_multiline() {
   header="$2"
   lines="$3"
 
+  if [ "$#" = 4 ]
+  then
+    highlight_color="$4"
+  else
+    highlight_color=""
+  fi
+
+  rm -f outer_temp_pipe
+  mkfifo outer_temp_pipe
+  echo "$lines" > outer_temp_pipe &
+
   header_line_passed="0"
-  echo "$lines" | while IFS= read -r line
+  while IFS= read -r line
   do
-    if [ "$header_line_passed" = "0" ]
-    then
+    rm -f inner_temp_pipe
+    mkfifo inner_temp_pipe
+    echo "$line" | fmt --split-only --width=80 > inner_temp_pipe &
+
+    first_wrapped_line_has_passed="0"
+    while IFS= read -r wrapped_line
+    do
+      if [ -n "$highlight_color" ]
+      then
+        if [ "$first_wrapped_line_has_passed" = "0" ]
+        then
+          first="${wrapped_line%% *}"  # getting the first element from the list
+          rest="${wrapped_line#* }"  # getting all items but the first
+          wrapped_line="${highlight_color}${first}${RESET} ${rest}"
+          first_wrapped_line_has_passed="1"
+        fi
+      fi
+
+      if [ "$header_line_passed" = "0" ]
+      then
+        target_header="$header"
+        header_line_passed="1"
+      else
+        target_header=""
+      fi
       # Te point here is to be able to receive dynamic formats.
       # shellcheck disable=SC2059
-      printf "$format" "$header" "$line"
-      header_line_passed="1"
-    else
-      # Also here.
-      # shellcheck disable=SC2059
-      printf "$format" " " "$line"
-    fi
-  done
+      printf "$format" "$target_header" "$wrapped_line"
+    done < inner_temp_pipe
+    rm inner_temp_pipe
+
+  done < outer_temp_pipe
+  rm outer_temp_pipe
 }
 
 
@@ -355,11 +387,20 @@ _dm_cli__show_module() {
   echo ""
   _dm_cli__utils__header_multiline "$format" "Path" "$path"
   echo ""
-  _dm_cli__utils__header_multiline "$format" "Variables" "$variables"
+  _dm_cli__utils__header_multiline "$format" "Variables" "$variables" "${BOLD}"
   echo ""
   _dm_cli__utils__header_multiline "$format" "Links" "$links"
   echo ""
-  _dm_cli__utils__header_multiline "$format" "Hooks" "$hooks"
+  _dm_cli__utils__header_multiline "$format" "Hooks" "$hooks" "${BOLD}"
+
+  if [ "$(echo "$docs" | wc --max-line-length)" -gt "80" ]
+  then
+    echo ""
+    _dm_cli__utils__header_multiline \
+      "${DIM}${YELLOW}%10s${RESET} ${DIM}%s${RESET}\n" \
+      "Warning" \
+      "Consider reformatting the module's documentation to not to exceed the 80 character line length and preventing automatic line wrapping."
+  fi
 }
 
 #==============================================================================
