@@ -114,10 +114,10 @@ fi
 #==============================================================================
 # DEBUGGING FUNCTIONALITY
 
+#============================================================================
+# Prints out the given message to standard error if debug mode is enabled.
+#============================================================================
 dm_lib__debug() {
-  #============================================================================
-  # Prints out the given message to standard error if debug mode is enabled.
-  #============================================================================
   if [ "$DM__GLOBAL__RUNTIME__DEBUG_ENABLED" = "1" ]
   then
     domain="$1"
@@ -126,11 +126,11 @@ dm_lib__debug() {
   fi
 } >&2
 
+#============================================================================
+# Prints out a given newline separated list to the debug output in a
+# formatted line-by-line way if debug mode is enabled.
+#============================================================================
 dm_lib__debug_list() {
-  #============================================================================
-  # Prints out a given newline separated list to the debug output in a
-  # formatted line-by-line way if debug mode is enabled.
-  #============================================================================
   if [ "$DM__GLOBAL__RUNTIME__DEBUG_ENABLED" = "1" ]
   then
     domain="$1"
@@ -160,40 +160,40 @@ dm_lib__cache__init() {
 # SUBMODULE: MODULES
 #==============================================================================
 
+#============================================================================
+# Returns the relative path list for all recognized modules found in the
+# given modules root directory. A module is recognized if it contains a dm
+# configuration file.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - DM__GLOBAL__CONFIG__CONFIG_FILE_NAME
+# - DM__GLOBAL__RUNTIME__MODULES_ROOT
+#
+# Arguments
+# - None
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Newline separated sorted list of modules
+#
+# StdErr
+# - Error that occured during operation
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 dm_lib__modules__list() {
-  #============================================================================
-  # Returns the relative path list for all recognized modules found in the
-  # given modules root directory. A module is recognized if it contains a dm
-  # configuration file.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - DM__GLOBAL__CONFIG__CONFIG_FILE_NAME
-  # - DM__GLOBAL__RUNTIME__MODULES_ROOT
-  #
-  # Arguments
-  # - None
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Newline separated sorted list of modules
-  #
-  # StdErr
-  # - Error that occured during operation
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   dm_lib__debug "dm_lib__modules_list" \
     "loading modules from '${DM__GLOBAL__RUNTIME__MODULES_ROOT}'"
 
@@ -213,38 +213,38 @@ dm_lib__modules__list() {
 # SUBMODULE: CONFIG FILE
 #==============================================================================
 
+#============================================================================
+# Parses the module name from the config file.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path - this is the path to the module the name should be
+#      loaded from.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Name of the module in a single line.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 dm_lib__config__get_name() {
-  #============================================================================
-  # Parses the module name from the config file.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Module path - this is the path to the module the name should be
-  #      loaded from.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Name of the module in a single line.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
 
   prefix="NAME"
@@ -254,38 +254,38 @@ dm_lib__config__get_name() {
     _dm_lib__utils__select_line "1"
 }
 
+#============================================================================
+# Parses the module version from the config file.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path - this is the path to the module the version should be
+#      loaded from.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Version of the module in a single line.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 dm_lib__config__get_version() {
-  #============================================================================
-  # Parses the module version from the config file.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Module path - this is the path to the module the version should be
-  #      loaded from.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Version of the module in a single line.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
 
   prefix="VERSION"
@@ -296,78 +296,115 @@ dm_lib__config__get_version() {
     _dm_lib__utils__select_line "1"
 }
 
+#============================================================================
+# Parses the module documentation from the config file.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path - this is the path to the module the docs should be
+#      loaded from.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Module documentation optionally in multiple lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 dm_lib__config__get_docs() {
-  #============================================================================
-  # Parses the module documentation from the config file.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Module path - this is the path to the module the docs should be
-  #      loaded from.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Module documentation optionally in multiple lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
 
   prefix="DOC"
 
   _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-    _dm_lib__config__parse_as_line
+    _dm_lib__config__parse_as_line | \
+    _dm_lib__config__remove_leading_pipe
 }
 
+#============================================================================
+# Removes the leading pipe character from the lines. This can be used to have a
+# way to preserve indentation for the docs section.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path - this is the path to the module the docs should be
+#      loaded from.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Module documentation optionally in multiple lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
+_dm_lib__config__remove_leading_pipe() {
+  cat - | sed -E "s/^\|//"
+}
+
+#============================================================================
+# Parses the module registered variables from the config file.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path - this is the path to the module the variables should be
+#      loaded from.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - One variable definition per line.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 dm_lib__config__get_variables() {
-  #============================================================================
-  # Parses the module registered variables from the config file.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Module path - this is the path to the module the variables should be
-  #      loaded from.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - One variable definition per line.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
 
   debug_domain="dm_lib__config__get_variables"
@@ -378,38 +415,38 @@ dm_lib__config__get_variables() {
     _dm_lib__config__parse_as_list
 }
 
+#============================================================================
+# Parses the module registered links from the config file.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path - this is the path to the module the links should be
+#      loaded from.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - One link definition per line.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 dm_lib__config__get_links() {
-  #============================================================================
-  # Parses the module registered links from the config file.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Module path - this is the path to the module the links should be
-  #      loaded from.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - One link definition per line.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
 
   prefix="LINK"
@@ -419,38 +456,38 @@ dm_lib__config__get_links() {
     _dm_lib__utils__trim_list "1-2"
 }
 
+#============================================================================
+# Parses the module registered hooks from the config file.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path - this is the path to the module the hooks should be
+#      loaded from.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - One hook definition per line.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 dm_lib__config__get_hooks() {
-  #============================================================================
-  # Parses the module registered hooks from the config file.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Module path - this is the path to the module the hooks should be
-  #      loaded from.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - One hook definition per line.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
 
   prefix="HOOK"
@@ -459,148 +496,148 @@ dm_lib__config__get_hooks() {
     _dm_lib__config__parse_as_list
 }
 
+#============================================================================
+# Assembles the config file path given the module's root path.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - DM__GLOBAL__CONFIG__CONFIG_FILE_NAME
+#
+# Arguments
+# - 1: Module path - this is the path to the module.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - The path to the config file.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__config__get_config_file_path() {
-  #============================================================================
-  # Assembles the config file path given the module's root path.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - DM__GLOBAL__CONFIG__CONFIG_FILE_NAME
-  #
-  # Arguments
-  # - 1: Module path - this is the path to the module.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - The path to the config file.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
   config_file="${module_path}/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
   echo "$config_file"
 }
 
+#============================================================================
+# Reads the config file and returns the related lines based on the given
+# prefix.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Config file path.
+# - 2: Prefix - this is used for related line identification.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Matched related lines based on the prefix.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__config__get_lines_for_prefix() {
-  #============================================================================
-  # Reads the config file and returns the related lines based on the given
-  # prefix.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Config file path.
-  # - 2: Prefix - this is used for related line identification.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Matched related lines based on the prefix.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   config_file="$1"
   prefix="$2"
   grep --color=never --regexp="^\s*$prefix" "$config_file"
 }
 
+#============================================================================
+# Removes the prefix part from the given line.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Prefix - the prefix that should be removed from the given input lines.
+#
+# StdIn
+# - Lines that should be cleaned from the prefix part.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Cleaned lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__config__remove_prefix_from_lines() {
-  #============================================================================
-  # Removes the prefix part from the given line.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Prefix - the prefix that should be removed from the given input lines.
-  #
-  # StdIn
-  # - Lines that should be cleaned from the prefix part.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Cleaned lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   prefix="$1"
   cat - | sed -E "s/\s*${prefix}\s+//"
 }
 
+#============================================================================
+# Helper function that reads the related config lines and removes it's prefix
+# parts.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Module path.
+# - 2: Prefix - this is used for related line identification.
+#
+# StdIn
+# - None
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Matched and prefix-stripped related lines based on the prefix.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__config__get_prefixed_lines_from_config_file() {
-  #============================================================================
-  # Helper function that reads the related config lines and removes it's prefix
-  # parts.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Module path.
-  # - 2: Prefix - this is used for related line identification.
-  #
-  # StdIn
-  # - None
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Matched and prefix-stripped related lines based on the prefix.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   module_path="$1"
   prefix="$2"
 
@@ -610,73 +647,73 @@ _dm_lib__config__get_prefixed_lines_from_config_file() {
     _dm_lib__config__remove_prefix_from_lines "$prefix"
 }
 
+#============================================================================
+# Function that will parse the given lines as a list by removing all
+# unecessary whitespace.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - None
+#
+# StdIn
+# - Lines that needs to be parsed.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Parsed lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__config__parse_as_list() {
-  #============================================================================
-  # Function that will parse the given lines as a list by removing all
-  # unecessary whitespace.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - None
-  #
-  # StdIn
-  # - Lines that needs to be parsed.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Parsed lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   cat - | _dm_lib__utils__parse_list
 }
 
+#============================================================================
+# Function that will parse the given lines as text lines keepeing every inner
+# whitespace while stripping the surrounding whitespace.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - None
+#
+# StdIn
+# - Lines that needs to be parsed.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Parsed lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__config__parse_as_line() {
-  #============================================================================
-  # Function that will parse the given lines as text lines keepeing every inner
-  # whitespace while stripping the surrounding whitespace.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - None
-  #
-  # StdIn
-  # - Lines that needs to be parsed.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Parsed lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   cat - | _dm_lib__utils__remove_surrounding_whitespace
 }
 
@@ -685,182 +722,182 @@ _dm_lib__config__parse_as_line() {
 # UTILS
 #==============================================================================
 
+#============================================================================
+# Function that squeezes every whitespace in the given lines.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - None
+#
+# StdIn
+# - Lines that needs to be parsed.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Parsed lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__utils__normalize_whitespace() {
-  #============================================================================
-  # Function that squeezes every whitespace in the given lines.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - None
-  #
-  # StdIn
-  # - Lines that needs to be parsed.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Parsed lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   cat - | tr --squeeze-repeats '[:space:]'
 }
 
+#============================================================================
+# Function that removes the surrounding whitespace from the given lines.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - None
+#
+# StdIn
+# - Lines that needs to be parsed.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Parsed lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__utils__remove_surrounding_whitespace() {
-  #============================================================================
-  # Function that removes the surrounding whitespace from the given lines.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - None
-  #
-  # StdIn
-  # - Lines that needs to be parsed.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Parsed lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   cat - | \
     sed -E 's/^\s*//' | \
     sed -E 's/\s*$//'
 }
 
+#============================================================================
+# Function that performs a list trimmig based on the given position string in
+# every given line..
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Items - Position string that has to be compatible with the `cut`
+#      command's `--fields` argument values.
+#
+# StdIn
+# - Lines that needs to be trimmed.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Trimmed lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__utils__trim_list() {
-  #============================================================================
-  # Function that performs a list trimmig based on the given position string in
-  # every given line..
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Items - Position string that has to be compatible with the `cut`
-  #      command's `--fields` argument values.
-  #
-  # StdIn
-  # - Lines that needs to be trimmed.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Trimmed lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   items="$1"
   cat - |\
     _dm_lib__utils__normalize_whitespace | \
     cut --delimiter=' ' --fields="${items}"
 }
 
+#============================================================================
+# Function that selects an indexed line from the given lines.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - 1: Line - Line index that should only be returned.
+#
+# StdIn
+# - Lines that needs to be trimmed.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - the selected line.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__utils__select_line() {
-  #============================================================================
-  # Function that selects an indexed line from the given lines.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - 1: Line - Line index that should only be returned.
-  #
-  # StdIn
-  # - Lines that needs to be trimmed.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - the selected line.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   line="$1"
   cat - | sed "${line}q;d"
 }
 
+#============================================================================
+# Function that will parse the given lines as a list by removing all
+# unecessary whitespace.
+#============================================================================
+# INPUT
+#============================================================================
+# Global variables
+# - None
+#
+# Arguments
+# - None
+#
+# StdIn
+# - Lines that needs to be parsed.
+#
+#============================================================================
+# OUTPUT
+#============================================================================
+# Output variables
+# - None
+#
+# StdOut
+# - Parsed lines.
+#
+# StdErr
+# - Error that occured during operation.
+#
+# Status
+# -  0 : ok
+# - !0 : error
+#============================================================================
 _dm_lib__utils__parse_list() {
-  #============================================================================
-  # Function that will parse the given lines as a list by removing all
-  # unecessary whitespace.
-  #============================================================================
-  # INPUT
-  #============================================================================
-  # Global variables
-  # - None
-  #
-  # Arguments
-  # - None
-  #
-  # StdIn
-  # - Lines that needs to be parsed.
-  #
-  #============================================================================
-  # OUTPUT
-  #============================================================================
-  # Output variables
-  # - None
-  #
-  # StdOut
-  # - Parsed lines.
-  #
-  # StdErr
-  # - Error that occured during operation.
-  #
-  # Status
-  # -  0 : ok
-  # - !0 : error
-  #============================================================================
   cat - | \
     _dm_lib__utils__normalize_whitespace | \
     _dm_lib__utils__remove_surrounding_whitespace

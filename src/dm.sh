@@ -261,7 +261,7 @@ _dm_cli__utils__header_multiline() {
   lines="$3"
 
   header_line_passed="0"
-  echo "$lines" | while read -r line
+  echo "$lines" | while IFS= read -r line
   do
     if [ "$header_line_passed" = "0" ]
     then

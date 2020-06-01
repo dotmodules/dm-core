@@ -209,11 +209,11 @@ teardown() {
 # ==============================================================================
 # MODULE DOCUMENTATION
 
-@test "config - parse module docs" {
+@test "config - parse module docs, leading pipe gets removed" {
   docs="This is my doc."
 
   _dm_lib__config__get_prefixed_lines_from_config_file() {
-    echo "$docs"
+    echo "|${docs}"
   }
 
   run dm_lib__config__get_docs "dummy_module_path"
@@ -226,13 +226,27 @@ teardown() {
   docs="This is my     doc with   plenty        of        spaces.."
 
   _dm_lib__config__get_prefixed_lines_from_config_file() {
-    echo "       ${docs}                 "
+    echo "       |${docs}                 "
   }
 
   run dm_lib__config__get_docs "dummy_module_path"
 
   assert test "$status" -eq 0
   assert_output "$docs"
+}
+
+@test "config - parse module docs - indentation is kept when using a pipe" {
+  docs="This is my     doc with   plenty        of        spaces.."
+  indentation="       "
+
+  _dm_lib__config__get_prefixed_lines_from_config_file() {
+    echo "       |${indentation}${docs}                 "
+  }
+
+  run dm_lib__config__get_docs "dummy_module_path"
+
+  assert test "$status" -eq 0
+  assert_output "${indentation}${docs}"
 }
 
 @test "config - parse module docs - every line is kept" {
@@ -373,7 +387,7 @@ teardown() {
   echo "VERSION ${version}" >> $dummy_config_file
 
   docs="This is my doc."
-  echo "DOC ${docs}" >> $dummy_config_file
+  echo "DOC | ${docs}" >> $dummy_config_file
 
   variable="VARIABLE value1 value2"
   echo "REGISTER ${variable}" >> $dummy_config_file
@@ -395,7 +409,7 @@ teardown() {
 
   run dm_lib__config__get_docs "$dummy_module_path"
   assert test "$status" -eq 0
-  assert_output "$docs"
+  assert_output " $docs"
 
   run dm_lib__config__get_variables "$dummy_module_path"
   assert test "$status" -eq 0
