@@ -24,10 +24,41 @@ cd "${DM__GLOBAL__RUNTIME__PATH}"
 
 . ./dm.lib.sh
 
-DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING="12"
 
 DM__GLOBAL__CLI__PROMPT=" ${BOLD}dm${RESET} # "
 DM__GLOBAL__CLI__EXIT_CONDITION="0"
+
+
+#==============================================================================
+# PARAMETER PARSING
+
+DM__GLOBAL__RUNTIME__MODULES_ROOT="$1"
+DM__PARAMETER_FILE_PATH="$2"
+DM__GLOBAL__RUNTIME__DEBUG_ENABLED="$3"
+
+
+#==============================================================================
+# PARAMETER FILE PARSING
+
+DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT="$( \
+  dm_lib__config__load_parameter "1" "80" "$DM__PARAMETER_FILE_PATH" \
+)"
+DM__GLOBAL__CONFIG__CLI__INDENT_AMOUNT="$( \
+  dm_lib__config__load_parameter "2" "4" "$DM__PARAMETER_FILE_PATH" \
+)"
+DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING="$( \
+  dm_lib__config__load_parameter "3" "12" "$DM__PARAMETER_FILE_PATH" \
+)"
+DM__GLOBAL__CONFIG__CLI__WARNING__WRAPPED_DOCS="$( \
+  dm_lib__config__load_parameter "4" "1" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# Generating the defualt indent string with spaces
+DM__GLOBAL__CONFIG__CLI__INDENT="$(printf "%${DM__GLOBAL__CONFIG__CLI__INDENT_AMOUNT}s" "")"
+
+# Removing the parameters passing file right after the parsing.
+rm "$DM__PARAMETER_FILE_PATH"
+
 
 #==============================================================================
 # DOCUMENTATION
@@ -124,15 +155,8 @@ display_documentation() {
 
 dm_cli__indent() {
   # Indents the given message to a common level.
-  cat - | sed 's/^/    /'
+  cat - | sed "s/^/${DM__GLOBAL__CONFIG__CLI__INDENT}/"
 }
-
-
-#==============================================================================
-# PARAMETER PARSING
-
-DM__GLOBAL__RUNTIME__MODULES_ROOT="$1"
-DM__GLOBAL__RUNTIME__DEBUG_ENABLED="$2"
 
 
 #==============================================================================
@@ -223,19 +247,23 @@ dm_cli__interpreter_quit() {
 #==============================================================================
 # COMMAND: HELP
 
-dm_cli__register_command "h|help" "dm_cli__indent_help" "Prints out this help message. This is the default command."
-dm_cli__register_default_command "dm_cli__indent_help"
-dm_cli__indent_help() {
+dm_cli__register_command "h|help" "dm_cli__help" "Prints out this help message. This is the default command."
+dm_cli__register_default_command "dm_cli__help"
+dm_cli__help() {
   echo ""
   echo "$DM__RUNTIME__REGISTERED_COMMAND_DOCS" | sed '/^[[:space:]]*$/d' | while read -r line
   do
     hotkeys="${line%% *}"  # getting the first element from the list
     doc="${line#* }"  # getting all items but the first
-    wrapped_doc="$(echo "$doc" | fmt --split-only --width=80)"
+
+    header_padding="14"
+    format="${BOLD}${CYAN}%${header_padding}s${RESET} %s\n"
+
     _dm_cli__utils__header_multiline \
-      "${BOLD}${CYAN}%13s${RESET} %s\n" \
+      "$header_padding" \
+      "$format" \
       "$hotkeys" \
-      "$wrapped_doc"
+      "$doc"
   done
   echo ""
 }
@@ -244,8 +272,8 @@ dm_cli__indent_help() {
 #==============================================================================
 # COMMAND: VERSION
 
-dm_cli__register_command "version" "dm_cli__indent_version" "Prints out the dotmodules version."
-dm_cli__indent_version() {
+dm_cli__register_command "version" "dm_cli__version" "Prints out the dotmodules version."
+dm_cli__version() {
   echo ""
   echo "${BOLD}dotmodules${RESET} ${DIM}v${DM__GLOBAL__RUNTIME__VERSION}${RESET}" | dm_cli__indent
   echo ""
@@ -266,27 +294,33 @@ dm_cli__list_variables() {
     variable_name="$(echo "$line" | _dm_lib__utils__trim_list 1)"
     values="$(echo "$line" | _dm_lib__utils__trim_list 2-)"
 
-    wrapped_values="$(echo "$values" | fmt --split-only --width=80)"
+    header_padding="$DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING"
+    format="${BOLD}%${header_padding}s${RESET} %s\n"
+
     _dm_cli__utils__header_multiline \
-      "${BOLD}%${DM__GLOBAL__CONFIG__CLI__VARIABLES_PADDING}s${RESET} %s\n" \
+      "$header_padding" \
+      "$format" \
       "$variable_name" \
-      "$wrapped_values"
+      "$values"
   done < "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
 
   echo ""
 }
 
 _dm_cli__utils__header_multiline() {
-  format="$1"
-  header="$2"
-  lines="$3"
+  header_padding="$1"
+  format="$2"
+  header="$3"
+  lines="$4"
 
-  if [ "$#" = 4 ]
+  if [ "$#" = 5 ]
   then
-    highlight_color="$4"
+    highlight_color="$5"
   else
     highlight_color=""
   fi
+
+  wrap_limit="$((DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT - header_padding))"
 
   rm -f outer_temp_pipe
   mkfifo outer_temp_pipe
@@ -297,7 +331,7 @@ _dm_cli__utils__header_multiline() {
   do
     rm -f inner_temp_pipe
     mkfifo inner_temp_pipe
-    echo "$line" | fmt --split-only --width=80 > inner_temp_pipe &
+    echo "$line" | fmt --split-only --width="$wrap_limit" > inner_temp_pipe &
 
     first_wrapped_line_has_passed="0"
     while IFS= read -r wrapped_line
@@ -342,7 +376,7 @@ dm_cli__modules() {
     _dm_cli__list_modules | column --table --separator ":" | dm_cli__indent
   else
     index="$1"
-    _dm_cli__show_module "$index" | dm_cli__indent
+    _dm_cli__show_module "$index"
   fi
   echo ""
 }
@@ -361,7 +395,7 @@ _dm_cli__list_modules() {
     status="${BOLD}${GREEN}${status}${RESET}"
     path="$(readlink -f "${module}")"
 
-    echo "[${index}]:${name}:${version}:${status}:${path}"
+    echo "[${index}]:${name}:${version}:${status}:${module}"
     index=$((index + 1))
   done
 }
@@ -399,29 +433,43 @@ _dm_cli__show_module() {
   status="${BOLD}${GREEN}${status}${RESET}"
   path="$(readlink -f "${module}")"
 
-  format="${DIM}%10s${RESET} %s\n"
-  _dm_cli__utils__header_multiline "$format" "Name" "$name"
-  _dm_cli__utils__header_multiline "$format" "Version" "$version"
-  echo ""
-  _dm_cli__utils__header_multiline "$format" "Status" "$status"
-  echo ""
-  _dm_cli__utils__header_multiline "$format" "Docs" "$docs"
-  echo ""
-  _dm_cli__utils__header_multiline "$format" "Path" "$path"
-  echo ""
-  _dm_cli__utils__header_multiline "$format" "Variables" "$variables" "${BOLD}"
-  echo ""
-  _dm_cli__utils__header_multiline "$format" "Links" "$links"
-  echo ""
-  _dm_cli__utils__header_multiline "$format" "Hooks" "$hooks" "${BOLD}"
+  header_padding="10"
+  format="${DIM}%${header_padding}s${RESET} %s\n"
 
-  if [ "$(echo "$docs" | wc --max-line-length)" -gt "80" ]
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Name" "$name"
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Version" "$version"
+  echo ""
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Status" "$status"
+  echo ""
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Docs" "$docs"
+  echo ""
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Path" "$path"
+  echo ""
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Variables" "$variables" "${BOLD}"
+  echo ""
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Links" "$links"
+  echo ""
+  _dm_cli__utils__header_multiline "$header_padding" "$format" "Hooks" "$hooks" "${BOLD}"
+
+
+  if [ "$DM__GLOBAL__CONFIG__CLI__WARNING__WRAPPED_DOCS" -eq "0" ]
+  then
+    dm_lib__debug "_dm_cli__show_module" "ignoring warning about line wrapping"
+    return
+  fi
+
+  wrap_limit="$((DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT - header_padding))"
+
+  if [ "$(echo "$docs" | wc --max-line-length)" -gt "$wrap_limit" ]
   then
     echo ""
+    format="${DIM}${YELLOW}%${header_padding}s${RESET} ${DIM}%s${RESET}\n"
+
     _dm_cli__utils__header_multiline \
-      "${DIM}${YELLOW}%10s${RESET} ${DIM}%s${RESET}\n" \
+      "$header_padding" \
+      "$format" \
       "Warning" \
-      "Consider reformatting the module's documentation to not to exceed the 80 character line length and prevent automatic line wrapping if the way it wraps the lines is not the best. You can turn off this warning by modifying your main Makefile in the config section."
+      "Consider reformatting the module's documentation to not to exceed the predefined ${DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT} character line length and prevent automatic line wrapping if the way it wraps the lines is not the best. You can turn off this warning by modifying your main Makefile in the config section [DM_CONFIG__WARNING__WRAPPED_DOCS]."
   fi
 }
 
