@@ -123,7 +123,7 @@ dm_lib__debug() {
   then
     domain="$1"
     message="$2"
-    printf "${DIM}$(date +"%F %T.%N") | %36s | %s${RESET}\n" "$domain" "$message"
+    printf "${DIM}$(date +"%F %T.%N") | %42s | %s${RESET}\n" "$domain" "$message"
   fi
 } >&2
 
