@@ -122,3 +122,4 @@ load test_helper
   assert test $status -eq 0
   assert_output "$expected"
 }
+

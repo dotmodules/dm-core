@@ -57,6 +57,10 @@ DM__PARAMETER_FILE_PATH="$2"
 # the standard error output of the dm process.
 DM__GLOBAL__RUNTIME__DEBUG_ENABLED="$3"
 
+
+DM__GLOBAL__WARNING__MODULE_DOC_WRAPPING="Consider reformatting the module's documentation to not to exceed the predefined character line length and prevent automatic line wrapping. You can turn off this warning by modifying your main Makefile in the config section [DM_CONFIG__WARNING__WRAPPED_DOCS]."
+
+
 #==============================================================================
 # PARAMETER FILE PARSING
 #==============================================================================
@@ -95,8 +99,65 @@ DM__GLOBAL__CONFIG__CLI__WARNING__WRAPPED_DOCS="$( \
   dm_lib__config__load_parameter "3" "1" "$DM__PARAMETER_FILE_PATH" \
 )"
 
+# PARAMETER 4
+#------------------------------------------------------------------------------
+# Exit command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__EXIT="$( \
+  dm_lib__config__load_parameter "4" "q|quit|exit" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# PARAMETER 5
+#------------------------------------------------------------------------------
+# Help command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__HELP="$( \
+  dm_lib__config__load_parameter "5" "?|help" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# PARAMETER 6
+#------------------------------------------------------------------------------
+# Version command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__VERSION="$( \
+  dm_lib__config__load_parameter "6" "version" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# PARAMETER 7
+#------------------------------------------------------------------------------
+# Variables command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__VARIABLES="$( \
+  dm_lib__config__load_parameter "7" "v|variables" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# PARAMETER 8
+#------------------------------------------------------------------------------
+# Hooks command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__HOOKS="$( \
+  dm_lib__config__load_parameter "8" "h|hooks" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# PARAMETER 9
+#------------------------------------------------------------------------------
+# Signals command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__SIGNALS="$( \
+  dm_lib__config__load_parameter "9" "s|signals" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# PARAMETER 10
+#------------------------------------------------------------------------------
+# Modules command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__MODULES="$( \
+  dm_lib__config__load_parameter "10" "m|modules" "$DM__PARAMETER_FILE_PATH" \
+)"
+
+# PARAMETER 11
+#------------------------------------------------------------------------------
+# Deploy command hotkeys.
+DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__DEPLOY="$( \
+  dm_lib__config__load_parameter "11" "d|deploy" "$DM__PARAMETER_FILE_PATH" \
+)"
+
 # Removing the parameters passing file right after the parsing.
 rm "$DM__PARAMETER_FILE_PATH"
+
 
 #==============================================================================
 #    _____ _      _____   _       _                        _
@@ -113,7 +174,8 @@ rm "$DM__PARAMETER_FILE_PATH"
 #==============================================================================
 
 #==============================================================================
-# Helper function that indents every line sent to its standard input.
+# Helper function that indents every line sent to its standard input with a
+# predefined amount.
 #==============================================================================
 # INPUT
 #==============================================================================
@@ -154,8 +216,8 @@ _dm_cli__utils__indent() {
 # overhanging lines. This function can be used to display dynamic summary pages
 # in a clear, formatted way. The header will be printed only in the first line.
 #
-# Internally it uses two named pipes that are removed right after the usage. On
-# error these named pipes could be left on your disk, but after a clean run,
+# Internally it uses two named pipes that gets removed right after the usage.
+# On error these named pipes could be left on your disk, but after a clean run,
 # they will be cleaned up.
 #==============================================================================
 # INPUT
@@ -173,6 +235,9 @@ _dm_cli__utils__indent() {
 # - 3: Header string that will be printed in the first line only.
 # - 4: Multiline data lines. This lines will be wrapped to the global wrapping
 #      limit. Leading and trailing whitespace will be kept.
+# - 5: Optional coloring escape sequence to be able to change the coloring of
+#      the first word of every lines. This can be useful if you want to print out
+#      named vales for a common key. The key gets empathized.
 #
 # StdIn
 # - Lines that needs to be indented.
@@ -199,6 +264,7 @@ _dm_cli__utils__header_multiline() {
   header="$3"
   lines="$4"
 
+  # Optional fifth coloring parameter for the leading words for every line.
   if [ "$#" = 5 ]
   then
     highlight_color="$5"
@@ -206,13 +272,32 @@ _dm_cli__utils__header_multiline() {
     highlight_color=""
   fi
 
+  # This function fill be mostly used to display text sections where the
+  # section headers are usually a right aligned words with a fix width. This
+  # width is passed to the function to be able to take into account for the
+  # global width calculation. Without this the global text wrap limit will be
+  # probably passed by this function.
   wrap_limit="$((DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT - header_padding))"
 
+  # With named pipes we can feed the while loops to read the lines while being
+  # able to access the outer context. The usual piped approach won't work as
+  # the pipe operator creates a subshell. Beside this solution we could have
+  # also used temporary files but this is a more elegant approach. Reaching the
+  # outside context is necessary as the function relies on flags that stored
+  # outside the loops.
   rm -f outer_temp_pipe
   mkfifo outer_temp_pipe
   echo "$lines" > outer_temp_pipe &
 
   header_line_passed="0"
+
+  # The outer while loop is responsible for looping through the input lines
+  # passed to the function. The internal while loop is responsible for wrapping
+  # the given lines to a predefined maximum width. By doing this the internal
+  # loop has to pay attention to the header printout as it needs to be printed
+  # only once.
+
+  # The outer named pipe will be fed to the loop at the end.
   while IFS= read -r line
   do
     rm -f inner_temp_pipe
@@ -220,19 +305,24 @@ _dm_cli__utils__header_multiline() {
     echo "$line" | fmt --split-only --width="$wrap_limit" > inner_temp_pipe &
 
     first_wrapped_line_has_passed="0"
+    # Inner named pipe will be fed to the loop at the end.
     while IFS= read -r wrapped_line
     do
-      if [ -n "$highlight_color" ]
+
+      # Highlighting the first word of the first wrapped line. If there is a
+      # 5th formatting parameter given, the it will be used here. We assume
+      # that there are only one space between the first and second word.
+      if [ "$first_wrapped_line_has_passed" = "0" ]
       then
-        if [ "$first_wrapped_line_has_passed" = "0" ]
-        then
-          first="${wrapped_line%% *}"  # getting the first element from the list
-          rest="${wrapped_line#* }"  # getting all items but the first
-          wrapped_line="${highlight_color}${first}${RESET} ${rest}"
-          first_wrapped_line_has_passed="1"
-        fi
+        first="${wrapped_line%% *}"  # getting the first element from the list
+        rest="${wrapped_line#* }"  # getting all items but the first
+        wrapped_line="${highlight_color}${first}${RESET} ${rest}"
+        first_wrapped_line_has_passed="1"
       fi
 
+      # The header should be printed only in the first line being it wrapped or
+      # not. Setting this global variable here in the wrapped line level will
+      # ensure that the header will be printed once.
       if [ "$header_line_passed" = "0" ]
       then
         target_header="$header"
@@ -240,15 +330,19 @@ _dm_cli__utils__header_multiline() {
       else
         target_header=""
       fi
-      # Te point here is to be able to receive dynamic formats.
+
+      # Te point here is to be able to receive dynamic formats so we need to
+      # allow the dynamic templated format here.
       # shellcheck disable=SC2059
       printf "$format" "$target_header" "$wrapped_line"
+
     done < inner_temp_pipe
     rm -f inner_temp_pipe
 
   done < outer_temp_pipe
   rm -f outer_temp_pipe
 }
+
 
 #==============================================================================
 # COMMAND REGISTERING
@@ -317,6 +411,7 @@ dm_cli__register_command() {
   _command="$2"
   doc="$3"
 
+  # Hotkeys can be separated by a pipe character.
   for hotkey in $(echo "$hotkeys" | sed 's/|/ /g')
   do
     dm_lib__debug "dm_cli__register_command" \
@@ -453,22 +548,30 @@ _dm_cli__get_command() {
 #
 #==============================================================================
 
+
 #==============================================================================
 # COMMAND: EXIT
 #==============================================================================
 
-dm_cli__register_command "q|quit|exit" "dm_cli__interpreter_quit" "Exits the dotmodules interpreter."
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__EXIT" \
+  "dm_cli__interpreter_quit" \
+  "Exits the dotmodules interpreter."
 dm_cli__interpreter_quit() {
   dm_lib__debug "dm_cli__interpreter_quit" \
     "interpreter quit called, setting exit condition.."
   DM__GLOBAL__CLI__EXIT_CONDITION="1"
 }
 
+
 #==============================================================================
 # COMMAND: HELP
 #==============================================================================
 
-dm_cli__register_command "h|help" "dm_cli__help" "Prints out this help message. This is the default command."
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__HELP" \
+  "dm_cli__help" \
+  "Prints out this help message. This is the default command."
 dm_cli__register_default_command "dm_cli__help"
 dm_cli__help() {
   echo ""
@@ -489,22 +592,30 @@ dm_cli__help() {
   echo ""
 }
 
+
 #==============================================================================
 # COMMAND: VERSION
 #==============================================================================
 
-dm_cli__register_command "version" "dm_cli__version" "Prints out the dotmodules version."
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__VERSION" \
+  "dm_cli__version" \
+  "Prints out the dotmodules version."
 dm_cli__version() {
   echo ""
   echo "${BOLD}dotmodules${RESET} ${DIM}v${DM__GLOBAL__RUNTIME__VERSION}${RESET}" | _dm_cli__utils__indent
   echo ""
 }
 
+
 #==============================================================================
 # COMMAND: VARIABLES
 #==============================================================================
 
-dm_cli__register_command "v|variables" "dm_cli__list_variables" "Prints out all collected variables."
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__VARIABLES" \
+  "dm_cli__list_variables" \
+  "Prints out all collected variables."
 dm_cli__list_variables() {
   dm_lib__debug "dm_cli__list_variables" \
     "displaying the content of the full variable cache.."
@@ -545,11 +656,53 @@ _dm_cli__list_variables__calculate_padding() {
   echo "$padding"
 }
 
+
+#==============================================================================
+# COMMAND: HOOKS
+#==============================================================================
+
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__HOOKS" \
+  "dm_cli__list_hooks" \
+  "Prints out all registered hooks sorted by priority."
+dm_cli__list_hooks() {
+  dm_lib__debug "dm_cli__list_hooks" \
+    "gathering registered hooks.."
+  echo ""
+
+  echo "Das ist hooks!" | _dm_cli__utils__indent
+
+  echo ""
+}
+
+
+#==============================================================================
+# COMMAND: SIGNALS
+#==============================================================================
+
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__SIGNALS" \
+  "dm_cli__list_signals" \
+  "Prints out all registered hooks sorted by priority."
+dm_cli__list_signals() {
+  dm_lib__debug "dm_cli__list_signals" \
+    "gathering registered signals.."
+  echo ""
+
+  echo "Das ist signals!" | _dm_cli__utils__indent
+
+  echo ""
+}
+
+
 #==============================================================================
 # COMMAND: MODULES
 #==============================================================================
 
-dm_cli__register_command "m|modules" "dm_cli__modules" "Lists all available modules by default. In the list there is an assigned index for each module that can be used as a parameter to show the given module details."
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__MODULES" \
+  "dm_cli__modules" \
+  "Lists all detected modules by default. In the list there is an assigned index for each module that can be used as a parameter to show the given module details."
 dm_cli__modules() {
   echo ""
   if [ "$#" = "0" ]
@@ -581,21 +734,55 @@ _dm_cli__list_modules() {
   done
 }
 
+_dm_cli__show_module__prepare_links() {
+  module="$1"
+  dm_lib__debug "_dm_cli__show_module__prepare_links" \
+    "preparing link display for module '${module}'"
+
+  dm_lib__config__get_links "$module" | while read -r link_string
+  do
+    dm_lib__debug "_dm_cli__show_module__prepare_links" \
+      "processing link_string '${link_string}'"
+
+    processed_link="$(_dm_lib__links__preprocess_raw_link_string "$module" "$link_string")"
+    target_path="${processed_link%% *}"  # getting the first element from the list
+    link_name="${processed_link#* }"  # getting all items but the first
+
+    dm_lib__debug "_dm_cli__show_module__prepare_links" \
+      "target_path '${target_path}'"
+    dm_lib__debug "_dm_cli__show_module__prepare_links" \
+      "link_name '${link_name}'"
+
+    result="$(_dm_lib__links__check_link "$target_path" "$link_name")"
+
+    if [ "$result" = "$DM__GLOBAL__CONFIG__LINK__NOT_EXISTS" ]
+    then
+      prefix="[${BOLD}${RED}link${RESET}|${BOLD}${RED}target${RESET}]"
+    elif [ "$result" = "$DM__GLOBAL__CONFIG__LINK__EXISTS_BUT_TARGET_MISMATCH" ]
+    then
+      prefix="[${BOLD}${GREEN}link${RESET}|${BOLD}${RED}target${RESET}]"
+    elif [ "$result" = "$DM__GLOBAL__CONFIG__LINK__EXISTS_WITH_TARGET" ]
+    then
+      prefix="[${BOLD}${GREEN}link${RESET}|${BOLD}${GREEN}target${RESET}]"
+    else
+      :
+    fi
+    echo "${prefix} ${link_string}"
+  done
+}
+
 _dm_cli__show_module() {
   selected_index="$1"
-  dm_lib__debug "_dm_cli__show_module" "selected index: ${selected_index}"
-  modules=$(dm_lib__modules__list)
 
-  module_count="$(echo "$modules" | wc -l)"
-  dm_lib__debug "_dm_cli__show_module" "module count: ${module_count}"
-
-  if [ "$selected_index" -gt "$module_count" ]
+  if module="$(dm_lib__modules__module_by_index "$selected_index")"
   then
-    dm_lib__debug "_dm_cli__show_module" "invalid selected index"
-    echo "${RED}Invalid module index! Should be in range 1-${module_count}.${RESET}"
+    :
+  else
+    module_count="$(dm_lib__modules__list | wc -l)"
+    echo "${RED}Invalid module index! Should be in range 1-${module_count}.${RESET}" | \
+      _dm_cli__utils__indent
     return
   fi
-  module="$(echo "$modules" | _dm_lib__utils__select_line "$selected_index")"
 
   dm_lib__debug "_dm_cli__show_module" "module selected: '${module}'"
 
@@ -604,10 +791,9 @@ _dm_cli__show_module() {
   status="deployed"
   docs="$(dm_lib__config__get_docs "$module")"
   variables="$(dm_lib__config__get_variables "$module" | sort)"
-  links="$(dm_lib__config__get_links "$module")"
   hooks="$(dm_lib__config__get_hooks "$module")"
 
-  links="$(echo "$links" | sed "s/^/[${BOLD}${GREEN}ok${RESET}] /")"
+  links="$(_dm_cli__show_module__prepare_links "$module")"
 
   name="${BOLD}${name}${RESET}"
   version="${version}"
@@ -649,9 +835,51 @@ _dm_cli__show_module() {
       "$header_padding" \
       "$format" \
       "Warning" \
-      "Consider reformatting the module's documentation to not to exceed the predefined character line length and prevent automatic line wrapping. You can turn off this warning by modifying your main Makefile in the config section [DM_CONFIG__WARNING__WRAPPED_DOCS]."
+      "$DM__GLOBAL__WARNING__MODULE_DOC_WRAPPING"
   fi
 }
+
+
+#==============================================================================
+# COMMAND: DEPLOY
+#==============================================================================
+
+dm_cli__register_command \
+  "$DM__GLOBAL__CONFIG__CLI__COMMAND_HOTKEYS__DEPLOY" \
+  "dm_cli__deploy" \
+  "Deploys all modules. If an index is provided as a parameter, then only the given modules gets deployed."
+dm_cli__deploy() {
+  echo ""
+  if [ "$#" = "0" ]
+  then
+    dm_lib__debug "dm_cli__deploy" "deploying all modules"
+    _dm_cli__deploy_all
+  else
+    index="$1"
+    dm_lib__debug "dm_cli__deploy" "deploying module for index '$index'"
+    _dm_cli__deploy_single "$index"
+  fi
+  echo ""
+}
+
+_dm_cli__deploy_all() {
+  :
+}
+
+_dm_cli__deploy_single() {
+  selected_index="$1"
+  if module="$(dm_lib__modules__module_by_index "$selected_index")"
+  then
+    :
+  else
+    module_count="$(dm_lib__modules__list | wc -l)"
+    echo "${RED}Invalid module index! Should be in the range of [1-${module_count}].${RESET}" | _dm_cli__utils__indent
+    return
+  fi
+
+  dm_lib__deploy__deploy_module "$module" | _dm_cli__utils__indent
+}
+
 
 #==============================================================================
 #   _____       _                           _
