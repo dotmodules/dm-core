@@ -308,16 +308,26 @@ _dm_cli__utils__header_multiline() {
     # Inner named pipe will be fed to the loop at the end.
     while IFS= read -r wrapped_line
     do
-
       # Highlighting the first word of the first wrapped line. If there is a
       # 5th formatting parameter given, the it will be used here. We assume
       # that there are only one space between the first and second word.
-      if [ "$first_wrapped_line_has_passed" = "0" ]
+      if [ -n "$highlight_color" ] && [ "$first_wrapped_line_has_passed" = "0" ]
       then
-        first="${wrapped_line%% *}"  # getting the first element from the list
-        rest="${wrapped_line#* }"  # getting all items but the first
-        wrapped_line="${highlight_color}${first}${RESET} ${rest}"
-        first_wrapped_line_has_passed="1"
+        # We need to separate the case when the wrapped line contains only one
+        # word, otherwise that word would be printed twice, as the first item
+        # and the latter items would be the same.
+        word_count="$(echo "$wrapped_line" | wc -w)"
+
+        if [ "$word_count" -eq "1" ]
+        then
+          wrapped_line="${highlight_color}${wrapped_line}${RESET}"
+          first_wrapped_line_has_passed="1"
+        else
+          first="${wrapped_line%% *}"  # getting the first element from the list
+          rest="${wrapped_line#* }"  # getting all items but the first
+          wrapped_line="${highlight_color}${first}${RESET} ${rest}"
+          first_wrapped_line_has_passed="1"
+        fi
       fi
 
       # The header should be printed only in the first line being it wrapped or
@@ -508,32 +518,34 @@ _dm_cli__get_command() {
     "processing raw command: '${raw_command}'"
 
   hotkey=$(echo "$raw_command" | _dm_lib__utils__trim_list 1)
+  dm_lib__debug "_dm_cli__get_command" \
+    "hotkey separated: '${hotkey}'"
+
   word_count=$(echo "$raw_command" | wc -w)
   if [ "$word_count" -gt 1 ]
   then
     params=$(echo "$raw_command" | _dm_lib__utils__trim_list 2-)
     dm_lib__debug "_dm_cli__get_command" \
-      "received additional paramters: '${params}'"
+      "additional paramters: '${params}'"
   else
     params=""
     dm_lib__debug "_dm_cli__get_command" \
       "no additional parameters received"
   fi
 
-  dm_lib__debug "_dm_cli__get_command" \
-    "matching registered command for hotkey: '${hotkey}'"
   result=$(echo "$DM_CLI__RUNTIME__REGISTERED_COMMANDS" | grep -E "^${hotkey}\s" || true)
   if [ -n "$result" ]
   then
     _command=$(echo "$result" | _dm_lib__utils__trim_list 2)
     dm_lib__debug "_dm_cli__get_command" \
-      "command matched: '${_command}'"
+      "command matched for hotkey: '${_command}'"
     _command="$_command $params"
   else
     dm_lib__debug "_dm_cli__get_command" \
       "no match for hotkey, using default command: '${DM_CLI__RUNTIME__DEFAULT_COMMAND}'"
     _command="$DM_CLI__RUNTIME__DEFAULT_COMMAND"
   fi
+
   echo "$_command" | _dm_lib__utils__remove_surrounding_whitespace
 }
 
@@ -928,16 +940,25 @@ dm_cli__interpreter() {
   while [ "$DM__GLOBAL__CLI__EXIT_CONDITION" = "0" ]
   do
     dm_lib__debug "dm_cli__interpreter" "waiting for user input.."
+
+    # POSIX does not define the prompt section of the read command, this is why
+    # we need to use an explicit printf before the read.
+    # Read more: https://github.com/koalaman/shellcheck/wiki/SC2039
     printf "%s" "$DM__GLOBAL__CLI__PROMPT"
     read -r raw_command
+
     if [ -z "$raw_command" ]
     then
       dm_lib__debug "dm_cli__interpreter" \
         "empty user input received, skip processing.."
       continue
+    else
+      dm_lib__debug "dm_cli__interpreter" \
+        "user input received: '${raw_command}'"
     fi
 
     _command="$(_dm_cli__get_command "$raw_command")"
+
     dm_lib__debug "dm_cli__interpreter" "executing command: '${_command}'"
     $_command
     dm_lib__debug "dm_cli__interpreter" "command '${_command}' executed"

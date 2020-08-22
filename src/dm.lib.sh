@@ -327,11 +327,14 @@ dm_lib__modules__module_by_index() {
     echo "$modules" | \
       _dm_lib__utils__select_line "$selected_index" \
   )"
+
   dm_lib__debug \
     "dm_lib__modules__module_by_index" \
-    "module selected: ${module}"
+    "returning module: ${module}"
+
   echo "$module"
 }
+
 
 #==============================================================================
 # SUBMODULE: CONFIG FILE
@@ -374,11 +377,18 @@ dm_lib__config__get_name() {
   prefix="NAME"
 
   dm_lib__debug "dm_lib__config__get_name" \
-    "getting prefix '${prefix}' from module '${module_path}'.."
+    "parsing name for prefix '${prefix}' from module '${module_path}'.."
 
-  _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-    _dm_lib__config__parse_as_line | \
-    _dm_lib__utils__select_line "1"
+  name="$( \
+    _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
+      _dm_lib__config__parse_as_line | \
+      _dm_lib__utils__select_line "1" \
+  )"
+
+  dm_lib__debug "dm_lib__config__get_name" \
+    "name parsed: '${name}'"
+
+  echo "$name"
 }
 
 #============================================================================
@@ -418,12 +428,19 @@ dm_lib__config__get_version() {
   prefix="VERSION"
 
   dm_lib__debug "dm_lib__config__get_version" \
-    "getting prefix '${prefix}' from module '${module_path}'.."
+    "parsing version for prefix '${prefix}' from module '${module_path}'.."
 
-  _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-    _dm_lib__config__parse_as_list | \
-    _dm_lib__utils__trim_list "1" | \
-    _dm_lib__utils__select_line "1"
+  version="$( \
+    _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
+      _dm_lib__config__parse_as_list | \
+      _dm_lib__utils__trim_list "1" | \
+      _dm_lib__utils__select_line "1" \
+  )"
+
+  dm_lib__debug "dm_lib__config__get_version" \
+    "version parsed: '${version}'"
+
+  echo "$version"
 }
 
 #============================================================================
@@ -463,11 +480,18 @@ dm_lib__config__get_docs() {
   prefix="DOC"
 
   dm_lib__debug "dm_lib__config__get_docs" \
-    "getting prefix '${prefix}' from module '${module_path}'.."
+    "parsing documentation for prefix '${prefix}' from module '${module_path}'.."
 
-  _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-    _dm_lib__config__parse_as_line | \
-    _dm_lib__config__remove_leading_pipe
+  docs="$( \
+    _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
+      _dm_lib__config__parse_as_line | \
+      _dm_lib__config__remove_leading_pipe
+  )"
+
+  dm_lib__debug_list "dm_lib__config__get_docs" \
+    "documentation parsed:" "$docs"
+
+  echo "$docs"
 }
 
 #============================================================================
@@ -542,10 +566,17 @@ dm_lib__config__get_variables() {
   prefix="REGISTER"
 
   dm_lib__debug "dm_lib__config__get_variables" \
-    "getting prefix '${prefix}' from module '${module_path}'.."
+    "parsing variables for prefix '${prefix}' from module '${module_path}'.."
 
-  _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-    _dm_lib__config__parse_as_list
+  variables="$( \
+    _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
+      _dm_lib__config__parse_as_list \
+  )"
+
+  dm_lib__debug_list "dm_lib__config__get_variables" \
+    "variables parsed:" "$variables"
+
+  echo "$variables"
 }
 
 #============================================================================
@@ -585,11 +616,18 @@ dm_lib__config__get_links() {
   prefix="LINK"
 
   dm_lib__debug "dm_lib__config__get_links" \
-    "getting prefix '${prefix}' from module '${module_path}'.."
+    "parsing links for prefix '${prefix}' from module '${module_path}'.."
 
-  _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-    _dm_lib__config__parse_as_list | \
-    _dm_lib__utils__trim_list "1-2"
+  links="$( \
+    _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
+      _dm_lib__config__parse_as_list | \
+      _dm_lib__utils__trim_list "1-2"
+  )"
+
+  dm_lib__debug_list "dm_lib__config__get_links" \
+    "links parsed:" "$links"
+
+  echo "$links"
 }
 
 #============================================================================
@@ -629,10 +667,17 @@ dm_lib__config__get_hooks() {
   prefix="HOOK"
 
   dm_lib__debug "dm_lib__config__get_hooks" \
-    "getting prefix '${prefix}' from module '${module_path}'.."
+    "parsing hooks for prefix '${prefix}' from module '${module_path}'.."
 
-  _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-    _dm_lib__config__parse_as_list
+  hooks="$( \
+    _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
+      _dm_lib__config__parse_as_list
+  )"
+
+  dm_lib__debug_list "dm_lib__config__get_hooks" \
+    "hooks parsed:" "$hooks"
+
+  echo "$hooks"
 }
 
 #============================================================================
