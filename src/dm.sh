@@ -635,7 +635,7 @@ dm_cli__list_variables() {
 
   header_padding="$(_dm_cli__list_variables__calculate_padding)"
 
-  while read -r line
+  dm_lib__variables__get_all | while read -r line
   do
     variable_name="$(echo "$line" | _dm_lib__utils__trim_list 1)"
     values="$(echo "$line" | _dm_lib__utils__trim_list 2-)"
@@ -647,16 +647,13 @@ dm_cli__list_variables() {
       "$format" \
       "$variable_name" \
       "$values"
-  done < "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE"
+  done
 
   echo ""
 }
 
 _dm_cli__list_variables__calculate_padding() {
-  max_varibale_name_length="$( \
-    cut --delimiter=' ' --fields='1' "$DM__GLOBAL__CONFIG__CACHE__VARIABLES_FILE" | \
-    wc --max-line-length \
-  )"
+  max_varibale_name_length="$(dm_lib__variables__get_max_variable_name_length)"
   dm_lib__debug "_dm_cli__list_variables__calculate_padding" \
     "max variable name length: '${max_varibale_name_length}'"
 
@@ -974,7 +971,7 @@ dm_cli__interpreter() {
 dm_cli__init() {
   dm_lib__debug "dm_cli__init" "initialization started"
   dm_lib__cache__init
-  dm_lib__variables__load "run_formatting_in_the_backgroud"
+  dm_lib__variables__load &
   dm_lib__debug "dm_cli__init" "initialization finished"
 }
 
