@@ -181,25 +181,19 @@ rm "$DM__PARAMETER_FILE_PATH"
 #==============================================================================
 # Global variables
 # - DM__GLOBAL__CONFIG__CLI__INDENT
-#
 # Arguments
 # - None
-#
 # StdIn
 # - Lines that needs to be indented.
-#
 #==============================================================================
 # OUTPUT
 #==============================================================================
 # Output variables
 # - None
-#
 # StdOut
 # - Indented lines.
-#
 # StdErr
 # - Error that occured during operation.
-#
 # Status
 # -  0 : ok
 # - !0 : error
@@ -224,7 +218,6 @@ _dm_cli__utils__indent() {
 #==============================================================================
 # Global variables
 # - DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT
-#
 # Arguments
 # - 1: Header padding size. This parameter is used to calculate the wrapping
 #      point for the multiline text. This size will be subtracted from the
@@ -238,22 +231,17 @@ _dm_cli__utils__indent() {
 # - 5: Optional coloring escape sequence to be able to change the coloring of
 #      the first word of every lines. This can be useful if you want to print out
 #      named vales for a common key. The key gets empathized.
-#
 # StdIn
 # - Lines that needs to be indented.
-#
 #==============================================================================
 # OUTPUT
 #==============================================================================
 # Output variables
 # - None
-#
 # StdOut
 # - Indented lines.
-#
 # StdErr
 # - Error that occured during operation.
-#
 # Status
 # -  0 : ok
 # - !0 : error
@@ -448,25 +436,19 @@ dm_cli__register_command() {
 #==============================================================================
 # Global variables
 # - DM_CLI__RUNTIME__DEFAULT_COMMAND
-#
 # Arguments
 # - 1: Function name for the default command.
-#
 # StdIn
 # - None
-#
 #==============================================================================
 # OUTPUT
 #==============================================================================
 # Output variables
 # - None
-#
 # StdOut
 # - None
-#
 # StdErr
 # - Error that occured during operation.
-#
 # Status
 # -  0 : ok
 # - !0 : error
@@ -488,26 +470,20 @@ dm_cli__register_default_command() {
 # Global variables
 # - DM_CLI__RUNTIME__DEFAULT_COMMAND
 # - DM_CLI__RUNTIME__REGISTERED_COMMANDS
-#
 # Arguments
 # - 1: Raw command query string. Based on this parameter the function tries to
 #      find the command and returns the registered function name.
-#
 # StdIn
 # - None
-#
 #==============================================================================
 # OUTPUT
 #==============================================================================
 # Output variables
 # - None
-#
 # StdOut
 # - Registered function name that is matched for the given command query string.
-#
 # StdErr
 # - Error that occured during operation.
-#
 # Status
 # -  0 : ok
 # - !0 : error
@@ -909,25 +885,19 @@ _dm_cli__deploy_single() {
 # Global variables
 # - DM__GLOBAL__CLI__EXIT_CONDITION
 # - DM__GLOBAL__CLI__PROMPT
-#
 # Arguments
 # - None
-#
 # StdIn
 # - None
-#
 #==============================================================================
 # OUTPUT
 #==============================================================================
 # Output variables
 # - None
-#
 # StdOut
 # - Prints out the interpreted commands output.
-#
 # StdErr
 # - Error that occured during operation.
-#
 # Status
 # -  0 : ok
 # - !0 : error
