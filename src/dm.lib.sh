@@ -10,7 +10,7 @@
 #==============================================================================
 
 #==============================================================================
-# GLOBAL
+# GLOBAL CONSTANT VARIABLES
 #==============================================================================
 
 # Name of the configuration file. This file will indicate that a directory is a
@@ -20,28 +20,16 @@ DM__GLOBAL__CONFIG__CONFIG_FILE_NAME="dm.conf"
 # Cache directory to store data between runs
 DM__GLOBAL__CONFIG__CACHE_DIR="../.dm.cache"
 
-# Hook that should run before the whole deploy process.
-DM__GLOBAL__CONFIG__HOOK__PRE_DEPLOY="PRE_DEPLOY"
-
-# Hook that should run after the whole deploy process.
-DM__GLOBAL__CONFIG__HOOK__POST_DEPLOY="POST_DEPLOY"
-
-
-DM__GLOBAL__CONFIG__LINK__NOT_EXISTS="0"
-DM__GLOBAL__CONFIG__LINK__EXISTS_BUT_TARGET_MISMATCH="1"
-DM__GLOBAL__CONFIG__LINK__EXISTS_WITH_TARGET="2"
-
 
 #==============================================================================
-# RUNTIME
+# MANDATORY RUNTIME VARIABLES
 #==============================================================================
-
 # The following variables are expected to be set by the main script that uses
 # this library. The values are depend on the actual deployment configuration,
 # so they cannot be static like the other global variables.
 
 # Global  debug enabled flag. Debug will be enabled if the value is 1.
-DM__GLOBAL__RUNTIME__DEBUG_ENABLED="0"
+DM__GLOBAL__RUNTIME__DEBUG_ENABLED="__INVALID__"
 
 # Relative path to the modules root.
 DM__GLOBAL__RUNTIME__MODULES_ROOT="__INVALID__"
@@ -190,6 +178,14 @@ dm_lib__config__load_parameter() {
 #==============================================================================
 # SUBMODULE: MODULES
 #==============================================================================
+#   __  __           _       _
+#  |  \/  |         | |     | |
+#  | \  / | ___   __| |_   _| | ___  ___
+#  | |\/| |/ _ \ / _` | | | | |/ _ \/ __|
+#  | |  | | (_) | (_| | |_| | |  __/\__ \
+#  |_|  |_|\___/ \__,_|\__,_|_|\___||___/
+#
+#==============================================================================
 
 #==============================================================================
 # Returns the relative path list for all recognized modules found in the
@@ -308,8 +304,16 @@ dm_lib__modules__module_by_index() {
 
 
 #==============================================================================
-# SUBMODULE: CONFIG FILE
+# SUBMODULE: CONFIG
 #==============================================================================
+#    _____             __ _
+#   / ____|           / _(_)
+#  | |     ___  _ __ | |_ _  __ _
+#  | |    / _ \| '_ \|  _| |/ _` |
+#  | |___| (_) | | | | | | | (_| |
+#   \_____\___/|_| |_|_| |_|\__, |
+#                            __/ |
+#===========================|___/=============================================
 
 #==============================================================================
 # Parses the module name from the config file.
@@ -583,7 +587,7 @@ dm_lib__config__get_links() {
 # Output variables
 # - None
 # StdOut
-# - One hook definition per line.
+# - One normalized hook definition per line.
 # StdErr
 # - Error that occured during operation.
 # Status
@@ -600,13 +604,205 @@ dm_lib__config__get_hooks() {
 
   hooks="$( \
     _dm_lib__config__get_prefixed_lines_from_config_file "$module_path" "$prefix" | \
-      _dm_lib__config__parse_as_list
+      _dm_lib__config__parse_as_list \
   )"
 
   dm_lib__debug_list "dm_lib__config__get_hooks" \
     "hooks parsed:" "$hooks"
 
-  echo "$hooks"
+  normalized_hooks="$( \
+    echo "$hooks" | _dm_lib__config__hooks__normalize \
+  )"
+
+  dm_lib__debug_list "dm_lib__config__get_hooks" \
+    "hooks normalized:" "$normalized_hooks"
+
+  echo "$normalized_hooks"
+}
+
+#==============================================================================
+# Main hook token normalization function. It's task is to limit the hook tokens
+# to 3 and calling the appropriate sub normalization function based on the
+# remained token count. If there is only one token remains, it will gets
+# ignored.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - None
+# StdIn
+# - Hooks to be normalized. One hook per line.
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Normalized hooks per line.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_lib__config__hooks__normalize() {
+  dm_lib__debug \
+    "_dm_lib__config__hooks__normalize" \
+    "normalization started by limiting the tokens to max 3"
+
+  cat - | _dm_lib__utils__trim_list "1-3" | while read -r hook
+  do
+    dm_lib__debug \
+      "_dm_lib__config__hooks__normalize" \
+      "normalizing hook '${hook}':"
+
+    count="$(echo "$hook" | wc -w)"
+
+    dm_lib__debug \
+      "_dm_lib__config__hooks__normalize" \
+      "- token count: ${count}"
+
+    if [ "$count" -eq "3" ]
+    then
+      normalized_hook="$(_dm_lib__config__hooks__normalize_3_tokens "$hook")"
+    elif [ "$count" -eq "2" ]
+    then
+      normalized_hook="$(_dm_lib__config__normalize_hooks__2_tokens "$hook")"
+    else
+      dm_lib__debug \
+        "_dm_lib__config__hooks__normalize" \
+        "- missing mandatory script path, ignoring hook!"
+      continue
+    fi
+
+    dm_lib__debug \
+      "_dm_lib__config__hooks__normalize" \
+      "- hook normalized: '${normalized_hook}'"
+
+    echo "$normalized_hook"
+  done
+}
+
+#==============================================================================
+# Normalizes the hook that contains 3 tokens. If the tokens match to the
+# expected '<signal> <priotity> <path>' pattern then there is nothing to do. If
+# the priority is not an integer, then it is assumed that the third token is
+# not important, and it gets removed, and the default priority will be inserted
+# betwen the 1st and 2nd tokens, thus forcing out the valid pattern.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - 1: hook tokens
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Normalized hook tokens.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_lib__config__hooks__normalize_3_tokens() {
+  hook="$1"
+
+  if echo "$hook" | grep -q -P '^[^\s]+\s\d+\s[^\s]+$'
+  then
+    dm_lib__debug \
+      "_dm_lib__config__hooks__normalize_3_tokens" \
+      "- hook matches to the '<signal> <priotity> <path>' pattern, nothing to do"
+
+    echo "$hook"
+
+  else
+    dm_lib__debug \
+      "_dm_lib__config__hooks__normalize_3_tokens" \
+      "- priority is not an integer in '<signal> <priotity> <path>' pattern"
+    dm_lib__debug \
+      "_dm_lib__config__hooks__normalize_3_tokens" \
+      "- assuming it is missing, removing 3rd token"
+
+    echo "$hook" | \
+      _dm_lib__utils__trim_list "1-2" | \
+      _dm_lib__config__hooks__insert_priority
+  fi
+}
+
+#==============================================================================
+# Normalizes the hook that contains 2 tokens. It will insert the default
+# priority between the 1st and 2nd token.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - 1: hook tokens
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Normalized hook tokens.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_lib__config__normalize_hooks__2_tokens() {
+  hook="$1"
+
+  dm_lib__debug \
+    "_dm_lib__config__normalize_hooks__2_tokens" \
+    "- priority missing, inserting the default one"
+
+  echo "$hook" | _dm_lib__config__hooks__insert_priority
+}
+
+#==============================================================================
+# Inserts the default priority between the 1st and 2nd token.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - None
+# StdIn
+# - Token stream. It expects to got 2 tokens per line.
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Modified token stream.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_lib__config__hooks__insert_priority() {
+  dm_lib__debug \
+    "_dm_lib__config__hooks__insert_priority" \
+    "- inserting default priority"
+
+  cat - | sed -E 's/^[^\s]+\s/&0 /'
 }
 
 #==============================================================================
@@ -636,6 +832,7 @@ dm_lib__config__get_hooks() {
 # - !0 : error
 #==============================================================================
 dm_lib__config__get_scripts_for_hook() {
+  # ????????????????????????????????
   module_path="$1"
   hook="$2"
 
@@ -832,9 +1029,16 @@ _dm_lib__config__parse_as_line() {
   cat - | _dm_lib__utils__remove_surrounding_whitespace
 }
 
-
 #==============================================================================
-# UTILS
+# SUBMODULE: UTILS
+#==============================================================================
+#   _    _ _   _ _
+#  | |  | | | (_) |
+#  | |  | | |_ _| |___
+#  | |  | | __| | / __|
+#  | |__| | |_| | \__ \
+#   \____/ \__|_|_|___/
+#
 #==============================================================================
 
 #==============================================================================
@@ -992,11 +1196,12 @@ _dm_lib__utils__parse_list() {
 #==============================================================================
 # SUBMODULE CACHE
 #==============================================================================
-#   ____           _
-#  / ___|__ _  ___| |__   ___
-# | |   / _` |/ __| '_ \ / _ \
-# | |__| (_| | (__| | | |  __/
-#  \____\__,_|\___|_| |_|\___|
+#    _____           _
+#   / ____|         | |
+#  | |     __ _  ___| |__   ___
+#  | |    / _` |/ __| '_ \ / _ \
+#  | |___| (_| | (__| | | |  __/
+#   \_____\__,_|\___|_| |_|\___|
 #
 #==============================================================================
 
@@ -1031,15 +1236,15 @@ dm_lib__cache__init() {
   _dm_lib__variables__init_variable_cache
 }
 
-
 #==============================================================================
 # SUBMODULE VARIABLES
 #==============================================================================
-# __     __         _       _     _
-# \ \   / /_ _ _ __(_) __ _| |__ | | ___  ___
-#  \ \ / / _` | '__| |/ _` | '_ \| |/ _ \/ __|
-#   \ V / (_| | |  | | (_| | |_) | |  __/\__ \
-#    \_/ \__,_|_|  |_|\__,_|_.__/|_|\___||___/
+#  __      __        _       _     _
+#  \ \    / /       (_)     | |   | |
+#   \ \  / /_ _ _ __ _  __ _| |__ | | ___  ___
+#    \ \/ / _` | '__| |/ _` | '_ \| |/ _ \/ __|
+#     \  / (_| | |  | | (_| | |_) | |  __/\__ \
+#      \/ \__,_|_|  |_|\__,_|_.__/|_|\___||___/
 #
 #==============================================================================
 
@@ -1483,7 +1688,7 @@ _dm_lib__variables__normalize() {
   do
     variable_name="${line%% *}"  # getting the first element from the list
     values="${line#* }"  # getting all items but the first
-    
+
     sorted_values="$(echo "$values" | xargs -n1 | sort | uniq | xargs)"
     sed -i "s;^${variable_name}.*$;${variable_name} ${sorted_values};" \
       "$DM__GLOBAL__VARIABLES__CACHE_FILE"
@@ -1498,17 +1703,21 @@ _dm_lib__variables__normalize() {
     "variables normalized"
 }
 
-
 #==============================================================================
 # SUBMODULE LINKS
 #==============================================================================
-#  _     _       _        
-# | |   (_)_ __ | | _____ 
-# | |   | | '_ \| |/ / __|
-# | |___| | | | |   <\__ \
-# |_____|_|_| |_|_|\_\___/
+#   _      _       _
+#  | |    (_)     | |
+#  | |     _ _ __ | | _____
+#  | |    | | '_ \| |/ / __|
+#  | |____| | | | |   <\__ \
+#  |______|_|_| |_|_|\_\___/
 #
 #==============================================================================
+
+DM__GLOBAL__CONFIG__LINK__NOT_EXISTS="0"
+DM__GLOBAL__CONFIG__LINK__EXISTS_BUT_TARGET_MISMATCH="1"
+DM__GLOBAL__CONFIG__LINK__EXISTS_WITH_TARGET="2"
 
 #==============================================================================
 # Expand path received from the config files as a string. The rationale behind
@@ -1700,10 +1909,17 @@ _dm_lib__links__preprocess_raw_link_string() {
   echo "${target_path} ${link_name}"
 }
 
-
 #==============================================================================
 # SUBMODULE: DEPLOY
 #==============================================================================
+#   _____             _
+#  |  __ \           | |
+#  | |  | | ___ _ __ | | ___  _   _
+#  | |  | |/ _ \ '_ \| |/ _ \| | | |
+#  | |__| |  __/ |_) | | (_) | |_| |
+#  |_____/ \___| .__/|_|\___/ \__, |
+#              | |             __/ |
+#==============|_|============|___/===========================================
 
 #==============================================================================
 # Full deploy of a single module.

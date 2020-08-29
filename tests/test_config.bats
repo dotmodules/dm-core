@@ -344,8 +344,11 @@ teardown() {
 # MODULE HOOKS
 
 @test "config - parse registered hooks" {
-  hook_1="HOOK_1 script_1 script_2"
-  hook_2="HOOK_2 script_3 script_4"
+  hook_1="HOOK_1 0 script_1"
+  hook_2="HOOK_2 0 script_2"
+
+  expected_hook_1="HOOK_1 0 script_1"
+  expected_hook_2="HOOK_2 0 script_2"
 
   _dm_lib__config__get_prefixed_lines_from_config_file() {
     echo "$hook_1"
@@ -357,13 +360,34 @@ teardown() {
   assert test $status -eq 0
   assert test ${#lines[@]} -eq 2
 
-  assert_line --index 0 "$hook_1"
-  assert_line --index 1 "$hook_2"
+  assert_line --index 0 "$expected_hook_1"
+  assert_line --index 1 "$expected_hook_2"
+}
+
+@test "config - parse registered hooks - additional script names gets ignored" {
+  hook_1="HOOK_1 0 script_1 ignored"
+  hook_2="HOOK_2 0 script_2 ignored ignored"
+
+  expected_hook_1="HOOK_1 0 script_1"
+  expected_hook_2="HOOK_2 0 script_2"
+
+  _dm_lib__config__get_prefixed_lines_from_config_file() {
+    echo "$hook_1"
+    echo "$hook_2"
+  }
+
+  run dm_lib__config__get_hooks "dummy_module_path"
+
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 2
+
+  assert_line --index 0 "$expected_hook_1"
+  assert_line --index 1 "$expected_hook_2"
 }
 
 @test "config - parse registered hooks - whitespace gets normalized" {
-  hook="MY_HOOK      script1           script2         "
-  expected_hook="MY_HOOK script1 script2"
+  hook="MY_HOOK      0           script1         "
+  expected_hook="MY_HOOK 0 script1"
 
   _dm_lib__config__get_prefixed_lines_from_config_file() {
     echo "   ${hook}"
@@ -373,6 +397,69 @@ teardown() {
 
   assert test "$status" -eq 0
   assert_output "$expected_hook"
+}
+
+@test "config - parse registered hooks - missing priority gets inserted" {
+  hook_1="HOOK_1 script_1"
+  hook_2="HOOK_2 0 script_2"
+
+  expected_hook_1="HOOK_1 0 script_1"
+  expected_hook_2="HOOK_2 0 script_2"
+
+  _dm_lib__config__get_prefixed_lines_from_config_file() {
+    echo "$hook_1"
+    echo "$hook_2"
+  }
+
+  run dm_lib__config__get_hooks "dummy_module_path"
+
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 2
+
+  assert_line --index 0 "$expected_hook_1"
+  assert_line --index 1 "$expected_hook_2"
+}
+
+@test "config - parse registered hooks - missing priority gets inserted while ignoring the whitespace" {
+  hook_1="HOOK_1       script_1    "
+  hook_2="HOOK_2    0 script_2 "
+
+  expected_hook_1="HOOK_1 0 script_1"
+  expected_hook_2="HOOK_2 0 script_2"
+
+  _dm_lib__config__get_prefixed_lines_from_config_file() {
+    echo "$hook_1"
+    echo "$hook_2"
+  }
+
+  run dm_lib__config__get_hooks "dummy_module_path"
+
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 2
+
+  assert_line --index 0 "$expected_hook_1"
+  assert_line --index 1 "$expected_hook_2"
+}
+
+@test "config - parse registered hooks - second parameter has to be an integer" {
+  hook_1="HOOK_1 script_1 ignored something else"
+  hook_2="HOOK_2 0 script_2"
+
+  expected_hook_1="HOOK_1 0 script_1"
+  expected_hook_2="HOOK_2 0 script_2"
+
+  _dm_lib__config__get_prefixed_lines_from_config_file() {
+    echo "$hook_1"
+    echo "$hook_2"
+  }
+
+  run dm_lib__config__get_hooks "dummy_module_path"
+
+  assert test $status -eq 0
+  assert test ${#lines[@]} -eq 2
+
+  assert_line --index 0 "$expected_hook_1"
+  assert_line --index 1 "$expected_hook_2"
 }
 
 
@@ -395,7 +482,8 @@ teardown() {
   link="target destination"
   echo "LINK ${link}" >> $dummy_config_file
 
-  hook="MY_HOOK script1 script2"
+  hook="MY_HOOK script1"
+  expected_hook="MY_HOOK 0 script1"
   echo "HOOK ${hook}" >> $dummy_config_file
 
   # Parse file
@@ -421,7 +509,7 @@ teardown() {
 
   run dm_lib__config__get_hooks "$dummy_module_path"
   assert test "$status" -eq 0
-  assert_output "$hook"
+  assert_output "$expected_hook"
 }
 
 @test "config - messy config file can be parsed" {
@@ -440,7 +528,8 @@ teardown() {
   link="target destination"
   echo "      LINK         ${link} dummy words     " >> $dummy_config_file
 
-  hook="MY_HOOK script1 script2"
+  hook="MY_HOOK           script1          invalid      unparsed   ignored "
+  expected_hook="MY_HOOK 0 script1"
   echo "        HOOK       ${hook}    " >> $dummy_config_file
 
   # Parse file
@@ -466,5 +555,5 @@ teardown() {
 
   run dm_lib__config__get_hooks "$dummy_module_path"
   assert test "$status" -eq 0
-  assert_output "$hook"
+  assert_output "$expected_hook"
 }
