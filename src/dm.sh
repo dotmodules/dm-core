@@ -39,7 +39,47 @@ DM__GLOBAL__RUNTIME__VERSION=$(cat "${DM__GLOBAL__RUNTIME__PATH}/../VERSION")
 # WARNING MESSAGES
 #==============================================================================
 
-DM__GLOBAL__WARNING__MODULE_DOC_WRAPPING="Consider reformatting the module's documentation to not to exceed the predefined character line length and prevent automatic line wrapping. You can turn off this warning by modifying your main Makefile in the config section [DM_CONFIG__WARNING__WRAPPED_DOCS]."
+#==============================================================================
+# Normalizes the piped string by replacing the newline characters with spaces
+# and removes the repeated whitespace characters. This could be useful if a
+# longer text needs to stored in a single variable. At the variable definition
+# the text could be broken into multiple lines to have a more cleaner source
+# file. This function will normalize the long text as if it was defined in a
+# continous line.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - None
+# StdIn
+# - Text to be normalized.
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Normalized text as a single line.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_cli__normalize_multiline_string() {
+  cat - | tr '\n' ' ' | tr --squeeze-repeats '[:space:]'
+}
+
+DM__GLOBAL__WARNING__MODULE_DOC_WRAPPING="$( \
+  echo "
+    Consider reformatting the module's documentation to not to exceed the
+    predefined character line length and prevent automatic line wrapping. You
+    can turn off this warning by modifying your main Makefile in the config
+    section [DM_CONFIG__WARNING__WRAPPED_DOCS].
+  " | _dm_cli__normalize_multiline_string \
+)"
 
 #==============================================================================
 # COMMAND LINE ARGUMENTS
