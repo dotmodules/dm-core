@@ -69,7 +69,10 @@ DM__GLOBAL__RUNTIME__VERSION=$(cat "${DM__GLOBAL__RUNTIME__PATH}/../VERSION")
 # - !0 : error
 #==============================================================================
 _dm_cli__normalize_multiline_string() {
-  cat - | tr '\n' ' ' | tr --squeeze-repeats '[:space:]'
+  cat - | \
+    tr '\n' ' ' | \
+    tr --squeeze-repeats '[:space:]' | \
+    sed 's/^\s*//;s/\s*$//'
 }
 
 DM__GLOBAL__WARNING__MODULE_DOC_WRAPPING="$( \
@@ -253,6 +256,185 @@ DM__GLOBAL__CONFIG__CLI__WARNING__WRAPPED_DOCS="$( \
 # Removing the parameters passing file right after the parsing.
 rm "$DM__PARAMETER_FILE_PATH"
 
+#==============================================================================
+# UTILITY FUNCTIONS
+#==============================================================================
+#   _    _ _   _ _ _ _
+#  | |  | | | (_) (_) |
+#  | |  | | |_ _| |_| |_ _   _
+#  | |  | | __| | | | __| | | |
+#  | |__| | |_| | | | |_| |_| |
+#   \____/ \__|_|_|_|\__|\__, |
+#                         __/ |
+#========================|___/=================================================
+
+#==============================================================================
+# Helper function that indents every line sent to its standard input with a
+# predefined amount.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - DM__GLOBAL__CONFIG__CLI__INDENT
+# Arguments
+# - None
+# StdIn
+# - Lines that needs to be indented.
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Indented lines.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_cli__utils__indent() {
+  # Indents the given message to a common level.
+  cat - | sed -e "s/^/${DM__GLOBAL__CONFIG__CLI__INDENT}/"
+}
+
+#==============================================================================
+# Display function that takes a multiline text and a header name alongside with
+# formatting information and prints out the header followed by the multiline
+# text. It also respects the global wrapping limit, and breaks up the
+# overhanging lines. This function can be used to display dynamic summary pages
+# in a clear, formatted way. The header will be printed only in the first line.
+#
+# Internally it uses two named pipes that gets removed right after the usage.
+# On error these named pipes could be left on your disk, but after a clean run,
+# they will be cleaned up.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT
+# Arguments
+# - 1: Header padding size. This parameter is used to calculate the wrapping
+#      point for the multiline text. This size will be subtracted from the
+#      global wrapping limit.
+# - 2: Format for the whole line with position based placeholders for the
+#      header and the data rows. This format will be directly passed to the
+#      `printf` command so you need to respect its formatting rules.
+# - 3: Header string that will be printed in the first line only.
+# - 4: Multiline data lines. This lines will be wrapped to the global wrapping
+#      limit. Leading and trailing whitespace will be kept.
+# - 5: Optional coloring escape sequence to be able to change the coloring of
+#      the first word of every lines. This can be useful if you want to print out
+#      named vales for a common key. The key gets empathized.
+# StdIn
+# - Lines that needs to be indented.
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Indented lines.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_cli__utils__header_multiline() {
+  header_padding="$1"
+  format="$2"
+  header="$3"
+  lines="$4"
+
+  # Optional fifth coloring parameter for the leading words for every line.
+  if [ "$#" = 5 ]
+  then
+    highlight_color="$5"
+  else
+    highlight_color=""
+  fi
+
+  # This function fill be mostly used to display text sections where the
+  # section headers are usually a right aligned words with a fix width. This
+  # width is passed to the function to be able to take into account for the
+  # global width calculation. Without this the global text wrap limit will be
+  # probably passed by this function.
+  wrap_limit="$((DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT - header_padding))"
+
+  # With named pipes we can feed the while loops to read the lines while being
+  # able to access the outer context. The usual piped approach won't work as
+  # the pipe operator creates a subshell. Beside this solution we could have
+  # also used temporary files but this is a more elegant approach. Reaching the
+  # outside context is necessary as the function relies on flags that stored
+  # outside the loops.
+  rm -f outer_temp_pipe
+  mkfifo outer_temp_pipe
+  echo "$lines" > outer_temp_pipe &
+
+  header_line_passed="0"
+
+  # The outer while loop is responsible for looping through the input lines
+  # passed to the function. The internal while loop is responsible for wrapping
+  # the given lines to a predefined maximum width. By doing this the internal
+  # loop has to pay attention to the header printout as it needs to be printed
+  # only once.
+
+  # The outer named pipe will be fed to the loop at the end.
+  while IFS= read -r line
+  do
+    rm -f inner_temp_pipe
+    mkfifo inner_temp_pipe
+    echo "$line" | fmt --split-only --width="$wrap_limit" > inner_temp_pipe &
+
+    first_wrapped_line_has_passed="0"
+    # Inner named pipe will be fed to the loop at the end.
+    while IFS= read -r wrapped_line
+    do
+      # Highlighting the first word of the first wrapped line. If there is a
+      # 5th formatting parameter given, the it will be used here. We assume
+      # that there are only one space between the first and second word.
+      if [ -n "$highlight_color" ] && [ "$first_wrapped_line_has_passed" = "0" ]
+      then
+        # We need to separate the case when the wrapped line contains only one
+        # word, otherwise that word would be printed twice, as the first item
+        # and the latter items would be the same.
+        word_count="$(echo "$wrapped_line" | wc -w)"
+
+        if [ "$word_count" -eq "1" ]
+        then
+          wrapped_line="${highlight_color}${wrapped_line}${RESET}"
+          first_wrapped_line_has_passed="1"
+        else
+          first="${wrapped_line%% *}"  # getting the first element from the list
+          rest="${wrapped_line#* }"  # getting all items but the first
+          wrapped_line="${highlight_color}${first}${RESET} ${rest}"
+          first_wrapped_line_has_passed="1"
+        fi
+      fi
+
+      # The header should be printed only in the first line being it wrapped or
+      # not. Setting this global variable here in the wrapped line level will
+      # ensure that the header will be printed once.
+      if [ "$header_line_passed" = "0" ]
+      then
+        target_header="$header"
+        header_line_passed="1"
+      else
+        target_header=""
+      fi
+
+      # Te point here is to be able to receive dynamic formats so we need to
+      # allow the dynamic templated format here.
+      # shellcheck disable=SC2059
+      printf "$format" "$target_header" "$wrapped_line"
+
+    done < inner_temp_pipe
+    rm -f inner_temp_pipe
+
+  done < outer_temp_pipe
+  rm -f outer_temp_pipe
+}
 
 #==============================================================================
 # INTERPRETER
@@ -376,8 +558,10 @@ dm_cli__init() {
   if [ "$DM__GLOBAL__RUNTIME__DEBUG_ENABLED" -eq "0" ]
   then
     dm_lib__variables__load &
+    dm_lib__hooks__load &
   else
     dm_lib__variables__load
+    dm_lib__hooks__load
   fi
 
   dm_lib__debug "dm_cli__init" "initialization finished"
@@ -806,11 +990,39 @@ dm_cli__register_command \
   "dm_cli__list_hooks" \
   "Prints out all registered hooks sorted by priority."
 dm_cli__list_hooks() {
-  dm_lib__debug "dm_cli__list_hooks" \
+  dm_lib__debug \
+    "dm_cli__list_hooks" \
     "gathering registered hooks.."
   echo ""
 
-  echo "Das ist hooks!" | _dm_cli__utils__indent
+  max_signal_length="$(dm_lib__hooks__get_max_signal_name_length)"
+  max_priority_length="$(dm_lib__hooks__get_max_priority_number_length)"
+
+  dm_lib__hooks__get_all | while read -r hook
+  do
+    signal="${hook%% *}"  # getting the first element from the list
+    remaining="${hook#* }"  # getting all items but the first
+    priority="${remaining%% *}"  # getting the first element from the list
+    path="${remaining#* }"  # getting all items but the first
+
+    # Indicating with red that a path is invalid.
+    if [ -f "$path" ]
+    then
+      formatted_path="${path}"
+    else
+      dm_lib__debug \
+        "dm_cli__list_hooks" \
+        "file with path '${path}' does not extist, flagging it"
+      formatted_path="${RED}${path}${RESET}"
+    fi
+
+    printf \
+      "${BOLD}%${max_signal_length}s ${BLUE}%${max_priority_length}s${RESET} %s\n" \
+      "$signal" \
+      "$priority" \
+      "$formatted_path" | \
+      _dm_cli__utils__indent
+  done
 
   echo ""
 }
@@ -943,7 +1155,7 @@ _dm_cli__show_module() {
   status="deployed"
   docs="$(dm_lib__config__get_docs "$module")"
   variables="$(dm_lib__config__get_variables "$module" | sort)"
-  hooks="$(dm_lib__config__get_hooks "$module")"
+  hooks="$(dm_lib__hooks__get_hooks_for_module "$module")"
 
   links="$(_dm_cli__show_module__prepare_links "$module")"
 
@@ -1038,185 +1250,6 @@ _dm_cli__deploy_single() {
   dm_lib__deploy__deploy_module "$module" | _dm_cli__utils__indent
 }
 
-#==============================================================================
-# UTILITY FUNCTIONS
-#==============================================================================
-#   _    _ _   _ _ _ _
-#  | |  | | | (_) (_) |
-#  | |  | | |_ _| |_| |_ _   _
-#  | |  | | __| | | | __| | | |
-#  | |__| | |_| | | | |_| |_| |
-#   \____/ \__|_|_|_|\__|\__, |
-#                         __/ |
-#========================|___/=================================================
-
-#==============================================================================
-# Helper function that indents every line sent to its standard input with a
-# predefined amount.
-#==============================================================================
-# INPUT
-#==============================================================================
-# Global variables
-# - DM__GLOBAL__CONFIG__CLI__INDENT
-# Arguments
-# - None
-# StdIn
-# - Lines that needs to be indented.
-#==============================================================================
-# OUTPUT
-#==============================================================================
-# Output variables
-# - None
-# StdOut
-# - Indented lines.
-# StdErr
-# - Error that occured during operation.
-# Status
-# -  0 : ok
-# - !0 : error
-#==============================================================================
-_dm_cli__utils__indent() {
-  # Indents the given message to a common level.
-  cat - | sed -e "s/^/${DM__GLOBAL__CONFIG__CLI__INDENT}/"
-}
-
-#==============================================================================
-# Display function that takes a multiline text and a header name alongside with
-# formatting information and prints out the header followed by the multiline
-# text. It also respects the global wrapping limit, and breaks up the
-# overhanging lines. This function can be used to display dynamic summary pages
-# in a clear, formatted way. The header will be printed only in the first line.
-#
-# Internally it uses two named pipes that gets removed right after the usage.
-# On error these named pipes could be left on your disk, but after a clean run,
-# they will be cleaned up.
-#==============================================================================
-# INPUT
-#==============================================================================
-# Global variables
-# - DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT
-# Arguments
-# - 1: Header padding size. This parameter is used to calculate the wrapping
-#      point for the multiline text. This size will be subtracted from the
-#      global wrapping limit.
-# - 2: Format for the whole line with position based placeholders for the
-#      header and the data rows. This format will be directly passed to the
-#      `printf` command so you need to respect its formatting rules.
-# - 3: Header string that will be printed in the first line only.
-# - 4: Multiline data lines. This lines will be wrapped to the global wrapping
-#      limit. Leading and trailing whitespace will be kept.
-# - 5: Optional coloring escape sequence to be able to change the coloring of
-#      the first word of every lines. This can be useful if you want to print out
-#      named vales for a common key. The key gets empathized.
-# StdIn
-# - Lines that needs to be indented.
-#==============================================================================
-# OUTPUT
-#==============================================================================
-# Output variables
-# - None
-# StdOut
-# - Indented lines.
-# StdErr
-# - Error that occured during operation.
-# Status
-# -  0 : ok
-# - !0 : error
-#==============================================================================
-_dm_cli__utils__header_multiline() {
-  header_padding="$1"
-  format="$2"
-  header="$3"
-  lines="$4"
-
-  # Optional fifth coloring parameter for the leading words for every line.
-  if [ "$#" = 5 ]
-  then
-    highlight_color="$5"
-  else
-    highlight_color=""
-  fi
-
-  # This function fill be mostly used to display text sections where the
-  # section headers are usually a right aligned words with a fix width. This
-  # width is passed to the function to be able to take into account for the
-  # global width calculation. Without this the global text wrap limit will be
-  # probably passed by this function.
-  wrap_limit="$((DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT - header_padding))"
-
-  # With named pipes we can feed the while loops to read the lines while being
-  # able to access the outer context. The usual piped approach won't work as
-  # the pipe operator creates a subshell. Beside this solution we could have
-  # also used temporary files but this is a more elegant approach. Reaching the
-  # outside context is necessary as the function relies on flags that stored
-  # outside the loops.
-  rm -f outer_temp_pipe
-  mkfifo outer_temp_pipe
-  echo "$lines" > outer_temp_pipe &
-
-  header_line_passed="0"
-
-  # The outer while loop is responsible for looping through the input lines
-  # passed to the function. The internal while loop is responsible for wrapping
-  # the given lines to a predefined maximum width. By doing this the internal
-  # loop has to pay attention to the header printout as it needs to be printed
-  # only once.
-
-  # The outer named pipe will be fed to the loop at the end.
-  while IFS= read -r line
-  do
-    rm -f inner_temp_pipe
-    mkfifo inner_temp_pipe
-    echo "$line" | fmt --split-only --width="$wrap_limit" > inner_temp_pipe &
-
-    first_wrapped_line_has_passed="0"
-    # Inner named pipe will be fed to the loop at the end.
-    while IFS= read -r wrapped_line
-    do
-      # Highlighting the first word of the first wrapped line. If there is a
-      # 5th formatting parameter given, the it will be used here. We assume
-      # that there are only one space between the first and second word.
-      if [ -n "$highlight_color" ] && [ "$first_wrapped_line_has_passed" = "0" ]
-      then
-        # We need to separate the case when the wrapped line contains only one
-        # word, otherwise that word would be printed twice, as the first item
-        # and the latter items would be the same.
-        word_count="$(echo "$wrapped_line" | wc -w)"
-
-        if [ "$word_count" -eq "1" ]
-        then
-          wrapped_line="${highlight_color}${wrapped_line}${RESET}"
-          first_wrapped_line_has_passed="1"
-        else
-          first="${wrapped_line%% *}"  # getting the first element from the list
-          rest="${wrapped_line#* }"  # getting all items but the first
-          wrapped_line="${highlight_color}${first}${RESET} ${rest}"
-          first_wrapped_line_has_passed="1"
-        fi
-      fi
-
-      # The header should be printed only in the first line being it wrapped or
-      # not. Setting this global variable here in the wrapped line level will
-      # ensure that the header will be printed once.
-      if [ "$header_line_passed" = "0" ]
-      then
-        target_header="$header"
-        header_line_passed="1"
-      else
-        target_header=""
-      fi
-
-      # Te point here is to be able to receive dynamic formats so we need to
-      # allow the dynamic templated format here.
-      # shellcheck disable=SC2059
-      printf "$format" "$target_header" "$wrapped_line"
-
-    done < inner_temp_pipe
-    rm -f inner_temp_pipe
-
-  done < outer_temp_pipe
-  rm -f outer_temp_pipe
-}
 
 #==============================================================================
 # DM ENTRY POINT

@@ -218,16 +218,15 @@ dm_lib__modules__list() {
   dm_lib__debug "dm_lib__modules_list" \
     "loading modules from '${DM__GLOBAL__RUNTIME__MODULES_ROOT}'"
 
-  modules="$(\
-    find "$DM__GLOBAL__RUNTIME__MODULES_ROOT"\
-      -type f\
-      -name "$DM__GLOBAL__CONFIG__CONFIG_FILE_NAME" | sort\
+  modules="$( \
+    find "$DM__GLOBAL__RUNTIME__MODULES_ROOT" \
+      -type f \
+      -name "$DM__GLOBAL__CONFIG__CONFIG_FILE_NAME" | sort \
   )"
 
   for module in $modules; do
     dirname "$module"
   done
-  return 0
 }
 
 #==============================================================================
@@ -1277,7 +1276,7 @@ DM__GLOBAL__VARIABLES__TEMP_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.variables.
 # Output variables
 # - None
 # StdOut
-# - Parsed lines.
+# - None.
 # StdErr
 # - Error that occured during operation.
 # Status
@@ -1285,10 +1284,6 @@ DM__GLOBAL__VARIABLES__TEMP_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.variables.
 # - !0 : error
 #==============================================================================
 dm_lib__variables__load() {
-  dm_lib__debug \
-    "dm_lib__variables__load" \
-    "loading variables from the modules.."
-
   # Writing all variables per module into the temporary cache file in an
   # unordered way. There is no formatting applied to the list of variables.
   # There are unordered and ungrupped.
@@ -1394,8 +1389,8 @@ dm_lib__variables__get() {
 # - !0 : error
 #==============================================================================
 dm_lib__variables__get_max_variable_name_length() {
-    cut --delimiter=' ' --fields='1' "$DM__GLOBAL__VARIABLES__CACHE_FILE" | \
-    wc --max-line-length
+  cut --delimiter=' ' --fields='1' "$DM__GLOBAL__VARIABLES__CACHE_FILE" | \
+  wc --max-line-length
 }
 
 #==============================================================================
@@ -1674,7 +1669,7 @@ _dm_lib__variables__normalize() {
     "normalizing variables.."
 
   # Sorting the whole cache file lines.
-  sort -o "$DM__GLOBAL__VARIABLES__CACHE_FILE" \
+  sort --output="$DM__GLOBAL__VARIABLES__CACHE_FILE" \
     "$DM__GLOBAL__VARIABLES__CACHE_FILE"
 
   # Copying the file to the temp file to be able to iterate over the lines
@@ -2026,4 +2021,328 @@ _dm_lib__deploy__link_files() {
     ln --symbolic --verbose "$target_path" "$link_name" 2>&1
 
   done
+}
+
+#==============================================================================
+# SUBMODULE HOOKS
+#==============================================================================
+#   _    _             _
+#  | |  | |           | |
+#  | |__| | ___   ___ | | _____
+#  |  __  |/ _ \ / _ \| |/ / __|
+#  | |  | | (_) | (_) |   <\__ \
+#  |_|  |_|\___/ \___/|_|\_\___/
+#
+#==============================================================================
+
+# Hooks cache file that will contain the hooks from all of the modules in a
+# sorted way.
+DM__GLOBAL__HOOKS__CACHE_FILE="${DM__GLOBAL__CONFIG__CACHE_DIR}/dm.hooks"
+
+#==============================================================================
+# API function to load the hooks from all the modules. After this function
+# return, the cache file will contain a sorted list of the registered hooks.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - DM__GLOBAL__HOOKS__CACHE_FILE
+# Arguments
+# - None
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - None
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+dm_lib__hooks__load() {
+  _dm_lib__hooks__collect_hooks_from_modules > \
+    "$DM__GLOBAL__HOOKS__CACHE_FILE"
+  _dm_lib__hooks__sort
+  dm_lib__debug \
+    "dm_lib__hooks__load" \
+    "hooks loaded"
+}
+
+#==============================================================================
+# API function to print all hooks to the standard output.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - DM__GLOBAL__HOOKS__CACHE_FILE
+# Arguments
+# - None
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - All hooks line by line.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+dm_lib__hooks__get_all() {
+  dm_lib__debug \
+    "dm_lib__hooks__get_all" \
+    "getting the content of the hook cache file.."
+  cat "$DM__GLOBAL__HOOKS__CACHE_FILE"
+}
+
+#==============================================================================
+# API function to get all hooks from a module.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - 1: module - module path
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - All hooks line by line for the given module.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+dm_lib__hooks__get_hooks_for_module() {
+  module="$1"
+
+  dm_lib__debug \
+    "dm_lib__hooks__get_hooks_for_module" \
+    "getting hooks from the module '${module}'"
+
+  dm_lib__config__get_hooks "$module" | while read -r hook
+  do
+    _dm_lib__hooks__expand_hook "$hook" "$module"
+  done
+}
+
+#==============================================================================
+# API function to get the longest signal name length.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - DM__GLOBAL__HOOKS__CACHE_FILE
+# Arguments
+# - None
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - All hooks line by line.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+dm_lib__hooks__get_max_signal_name_length() {
+  dm_lib__debug \
+    "dm_lib__hooks__get_max_signal_name_length" \
+    "getting the max signal name length from the hooks cache file"
+
+  result="$( \
+    cut --delimiter=' ' --fields='1' "$DM__GLOBAL__HOOKS__CACHE_FILE" | \
+    wc --max-line-length \
+  )"
+
+  dm_lib__debug \
+    "dm_lib__hooks__get_max_signal_name_length" \
+    "returning result: '${result}'"
+
+  echo "$result"
+}
+
+#==============================================================================
+# API function to get the longest priority number length.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - DM__GLOBAL__HOOKS__CACHE_FILE
+# Arguments
+# - None
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - All hooks line by line.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+dm_lib__hooks__get_max_priority_number_length() {
+  dm_lib__debug \
+    "dm_lib__hooks__get_max_priority_number_length" \
+    "getting the max priority number length from the hooks cache file"
+
+  result="$( \
+    cut --delimiter=' ' --fields='2' "$DM__GLOBAL__HOOKS__CACHE_FILE" | \
+    wc --max-line-length \
+  )"
+
+  dm_lib__debug \
+    "dm_lib__hooks__get_max_priority_number_length" \
+    "returning result: '${result}'"
+
+  echo "$result"
+}
+
+#==============================================================================
+# Function to sort the hooks in the cache file.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - DM__GLOBAL__HOOKS__CACHE_FILE
+# Arguments
+# - None
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - None
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_lib__hooks__sort() {
+  sort \
+    --version-sort \
+    --output="$DM__GLOBAL__HOOKS__CACHE_FILE" \
+    "$DM__GLOBAL__HOOKS__CACHE_FILE"
+
+  dm_lib__debug \
+    "_dm_lib__hooks__sort" \
+    "hooks cache file sorted"
+}
+
+#==============================================================================
+# Private function that collects all hooks from the modules and prints
+# them out to the standard output.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - None
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Line by line list of all the variables loaded from the modules.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_lib__hooks__collect_hooks_from_modules() {
+  dm_lib__debug \
+    "_dm_lib__hooks__collect_hooks_from_modules" \
+    "collecting hooks from modules.."
+
+  modules="$(dm_lib__modules__list)"
+  for module in $modules
+  do
+    dm_lib__hooks__get_hooks_for_module "$module"
+  done
+}
+
+#==============================================================================
+# Function to convert the hook's path to an absolute path. This function does
+# not cares about if the file at the expanded file is not exists. This check
+# has to be made in a higher level.
+#==============================================================================
+# INPUT
+#==============================================================================
+# Global variables
+# - None
+# Arguments
+# - 1: hook - the hook string that needs to be expanded with the following
+#             structure: '<signal_name> <priority_number> <paht>.
+# StdIn
+# - None
+#==============================================================================
+# OUTPUT
+#==============================================================================
+# Output variables
+# - None
+# StdOut
+# - Expanded hook string.
+# StdErr
+# - Error that occured during operation.
+# Status
+# -  0 : ok
+# - !0 : error
+#==============================================================================
+_dm_lib__hooks__expand_hook() {
+  hook="$1"
+  module="$2"
+
+  signal="${hook%% *}"  # getting the first element from the list
+  remaining="${hook#* }"  # getting all items but the first
+  priority="${remaining%% *}"  # getting the first element from the list
+  path="${remaining#* }"  # getting all items but the first
+
+  dm_lib__debug \
+    "_dm_lib__hooks__expand_hook" \
+    "resolving absoute path for '${path}'"
+
+  # Getting the absolute path without requiring to be existing. In this
+  # way, this command will always succeed. The existence should be checked
+  # on a higher level.
+  absolute_path="$(readlink --canonicalize-missing "${module}/${path}")"
+
+  dm_lib__debug \
+    "_dm_lib__hooks__expand_hook" \
+    "resolved: '${absolute_path}'"
+
+  echo "${signal} ${priority} ${absolute_path}"
 }
