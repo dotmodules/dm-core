@@ -486,6 +486,8 @@ dm_cli__start_interpreter() {
     # we need to use an explicit printf before the read.
     # Read more: https://github.com/koalaman/shellcheck/wiki/SC2039
     printf "%s" "$DM__GLOBAL__CLI__PROMPT"
+
+    # TODO: add arrow key handling with history
     read -r raw_command
 
     if [ -z "$raw_command" ]
@@ -497,6 +499,9 @@ dm_cli__start_interpreter() {
       dm_lib__debug "dm_cli__interpreter" \
         "user input received: '${raw_command}'"
     fi
+
+    # TODO: add help system as a question mark postfix. This information will
+    # be appended to the command arguments.
 
     _command="$(_dm_cli__get_command "$raw_command")"
 
@@ -551,6 +556,10 @@ dm_cli__init() {
   dm_cli__welcome_message
 
   dm_lib__cache__init
+
+  # Modules needs to be loaded first in order to be able to load others. This
+  # has to be done in a synchronized way.
+  dm_lib__modules__load
 
   # Running the longer tasks synchronously when debugging to have a better
   # behaving printout. Without this the different tasks debug messages could
@@ -1016,6 +1025,7 @@ dm_cli__list_hooks() {
       formatted_path="${RED}${path}${RESET}"
     fi
 
+    # shellcheck disable=SC2059
     printf \
       "${BOLD}%${max_signal_length}s ${BLUE}%${max_priority_length}s${RESET} %s\n" \
       "$signal" \
@@ -1047,9 +1057,99 @@ dm_cli__list_signals() {
     "gathering registered signals.."
   echo ""
 
-  echo "Das ist signals!" | _dm_cli__utils__indent
+  if [ "$#" = "0" ]
+  then
+    _dm_cli__list_signals | column --table --separator ":" | _dm_cli__utils__indent
+  else
+    index="$1"
+    _dm_cli__signals__execute_signal "$index"
+  fi
 
   echo ""
+}
+
+_dm_cli__list_signals() {
+  _index=1
+  signals=$(dm_lib__hooks__get_signal_names)
+  for signal in $signals
+  do
+    index="${DIM}[${_index}]${RESET}"
+    signal="${BOLD}${signal}${RESET}"
+    echo "${index}:${signal}"
+    _index=$((_index + 1))
+  done
+}
+
+_dm_cli__signals__execute_signal() {
+  selected_index="$1"
+
+  if signal="$(dm_lib__hooks__signal_for_index "$selected_index")"
+  then
+    :
+  else
+    signal_count="$(dm_lib__hooks__get_signal_names | wc -l)"
+    echo "${RED}Invalid signal index! Should be in range 1-${signal_count}.${RESET}" | \
+      _dm_cli__utils__indent
+    return
+  fi
+
+  dm_lib__debug "_dm_cli__execute_signal" "selected signal: '${signal}'"
+
+  echo "Select scope for signal ${BOLD}${signal}${RESET}." | _dm_cli__utils__indent
+  echo ""
+  _dm_cli__signals__print_scope_choices | _dm_cli__utils__indent | _dm_cli__utils__indent
+  echo ""
+  printf "%s" "Scope: " | _dm_cli__utils__indent
+  read -r context
+
+  echo "imre: ${context}"
+}
+
+_dm_cli__signals__print_scope_choices() {
+  index_width="$(dm_lib__modules__get_width__index)"
+  name_width="$(dm_lib__modules__get_width__name)"
+
+  # Offsetting the width to have a more spacy display.
+  index_width="$((index_width + 3))"
+  name_width="$((name_width + 1))"
+
+  # Templates for the formatting.
+  index_t="${DIM}%-${index_width}s${RESET}"
+  name_t="${BOLD}%-${name_width}s${RESET}"
+  path_t="%s"
+
+  # shellcheck disable=SC2059
+  printf "${index_t} ${BLUE}%s${RESET}\n" \
+    "[a]" \
+    "All modules"
+
+  echo ""
+
+  index=1
+
+  modules=$(dm_lib__modules__list)
+  for module in $modules
+  do
+    index_value="[${index}]"
+    name_value="$(dm_lib__modules__get_name "$module")"
+    path_value="$module"
+
+
+    # shellcheck disable=SC2059
+    printf "${index_t} ${name_t} ${path_t}\n" \
+      "$index_value" \
+      "$name_value" \
+      "$path_value"
+
+    index=$((index + 1))
+  done
+
+  echo ""
+
+  # shellcheck disable=SC2059
+  printf "${index_t} ${RED}%s${RESET}\n" \
+    "[q]" \
+    "Cancel"
 }
 
 #==============================================================================
@@ -1071,7 +1171,7 @@ dm_cli__modules() {
   echo ""
   if [ "$#" = "0" ]
   then
-    _dm_cli__list_modules | column --table --separator ":" | _dm_cli__utils__indent
+    _dm_cli__list_modules | _dm_cli__utils__indent
   else
     index="$1"
     _dm_cli__show_module "$index"
@@ -1080,20 +1180,46 @@ dm_cli__modules() {
 }
 
 _dm_cli__list_modules() {
+  echo "${BLUE}These are the modules available in your configuration. You can select a module by appending its index to the modules command like m|modules 42.${RESET}" | fmt --split-only --width="80"
+  echo ""
+
   index=1
+
+  index_width="$(dm_lib__modules__get_width__index)"
+  name_width="$(dm_lib__modules__get_width__name)"
+  version_width="$(dm_lib__modules__get_width__version)"
+  status_width="$(dm_lib__modules__get_width__status)"
+
+  # Offsetting the width to have a more spacy display.
+  index_width="$((index_width + 3))"
+  name_width="$((name_width + 1))"
+  version_width="$((version_width + 1))"
+  status_width="$((status_width + 1))"
+
+  # Templates for the formatting.
+  index_t="${DIM}%-${index_width}s${RESET}"
+  name_t="${BOLD}%-${name_width}s${RESET}"
+  version_t="%-${version_width}s"
+  status_t="${BOLD}${GREEN}%-${status_width}s${RESET}"
+  path_t="%s"
+
   modules=$(dm_lib__modules__list)
   for module in $modules
   do
-    name="$(dm_lib__config__get_name "$module")"
-    version="$(dm_lib__config__get_version "$module")"
-    status="deployed"
+    index_value="[${index}]"
+    name_value="$(dm_lib__modules__get_name "$module")"
+    version_value="$(dm_lib__modules__get_version "$module")"
+    status_value="$(dm_lib__modules__get_status "$module")"
+    path_value="$module"
 
-    name="${BOLD}${name}${RESET}"
-    version="${version}"
-    status="${BOLD}${GREEN}${status}${RESET}"
-    path="$(readlink -f "${module}")"
+    # shellcheck disable=SC2059
+    printf "${index_t} ${name_t} ${version_t} ${status_t} ${path_t}\n" \
+      "$index_value" \
+      "$name_value" \
+      "$version_value" \
+      "$status_value" \
+      "$path_value"
 
-    echo "[${index}]:${name}:${version}:${status}:${module}"
     index=$((index + 1))
   done
 }
@@ -1138,7 +1264,7 @@ _dm_cli__show_module__prepare_links() {
 _dm_cli__show_module() {
   selected_index="$1"
 
-  if module="$(dm_lib__modules__module_by_index "$selected_index")"
+  if module="$(dm_lib__modules__module_for_index "$selected_index")"
   then
     :
   else
@@ -1238,7 +1364,7 @@ _dm_cli__deploy_all() {
 
 _dm_cli__deploy_single() {
   selected_index="$1"
-  if module="$(dm_lib__modules__module_by_index "$selected_index")"
+  if module="$(dm_lib__modules__module_for_index "$selected_index")"
   then
     :
   else
@@ -1249,7 +1375,6 @@ _dm_cli__deploy_single() {
 
   dm_lib__deploy__deploy_module "$module" | _dm_cli__utils__indent
 }
-
 
 #==============================================================================
 # DM ENTRY POINT

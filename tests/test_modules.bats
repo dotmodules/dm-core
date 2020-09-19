@@ -32,6 +32,7 @@ setup_modules() {
 @test "modules - modules can be discovered inside the modules root" {
   setup_modules
 
+  dm_lib__modules__load
   run dm_lib__modules__list
 
   assert test $status -eq 0
@@ -56,7 +57,7 @@ setup_modules() {
   selected_index="2"
   expected="two"
 
-  run dm_lib__modules__module_by_index "$selected_index"
+  run dm_lib__modules__module_for_index "$selected_index"
 
   assert test $status -eq 0
   assert_output "$expected"
@@ -71,7 +72,7 @@ setup_modules() {
 
   selected_index="4"
 
-  run dm_lib__modules__module_by_index "$selected_index"
+  run dm_lib__modules__module_for_index "$selected_index"
 
   assert test $status -eq 1
 }
@@ -85,7 +86,7 @@ setup_modules() {
 
   selected_index="0"
 
-  run dm_lib__modules__module_by_index "$selected_index"
+  run dm_lib__modules__module_for_index "$selected_index"
 
   assert test $status -eq 1
 }
@@ -99,7 +100,7 @@ setup_modules() {
 
   selected_index="not an index"
 
-  run dm_lib__modules__module_by_index "$selected_index"
+  run dm_lib__modules__module_for_index "$selected_index"
 
   assert test $status -eq 1
 }
