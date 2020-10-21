@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/dotmodules/dm.svg?branch=master)](https://travis-ci.org/dotmodules/dm)
+![build](https://github.com/dotmodules/dm/workflows/build/badge.svg)
 
 # Dotfiles configuration management system
 
