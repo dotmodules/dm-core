@@ -56,6 +56,9 @@ dm_lib__log_verbose() {
 
 # Ignoring the not used shellcheck errors as these variables are good to have
 # during additional development.
+# This is a special case where double quoting is actually not preferable. More
+# details: https://stackoverflow.com/a/13864829/1565331
+# shellcheck disable=SC2086
 if command -v tput > /dev/null && [ ! -s ${TERM+x} ]
 then
   # shellcheck disable=SC2034
