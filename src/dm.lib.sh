@@ -56,7 +56,7 @@ dm_lib__log_verbose() {
 
 # Ignoring the not used shellcheck errors as these variables are good to have
 # during additional development.
-if command -v tput > /dev/null
+if command -v tput > /dev/null && [ -n "$TERM" ]
 then
   # shellcheck disable=SC2034
   RED="$(tput setaf 1)"
