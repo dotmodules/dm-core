@@ -1623,7 +1623,7 @@ _dm_lib__utils__line_by_index() {
   else
     dm_lib__debug \
       "_dm_lib__utils__line_by_index" \
-      "index '${index}' is valid"
+      "index '${selected_index}' is valid"
   fi
   line="$( \
     echo "$lines" | \

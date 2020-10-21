@@ -1,10 +1,6 @@
-load $DM_LIB_MUT
-load $BATS_MOCK
-load $BATS_ASSERT
-load $BATS_SUPPORT
-load test_helper
+. ../../../src/dm.lib.sh
 
-@test "utils - expand_path - home variable can be expanded" {
+test__expand_path__home_variable_can_be_expanded() {
   HOME='/this/is/a/fake/home'
 
   input='$HOME/hello/bin'
@@ -12,11 +8,11 @@ load test_helper
 
   run _dm_lib__links__expand_path "$input"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "links - expand_path - tilde can be expanded" {
+test__expand_path__tilde_can_be_expanded() {
   HOME='/this/is/a/fake/home'
 
   input='~/hello/bin'
@@ -24,12 +20,12 @@ load test_helper
 
   run _dm_lib__links__expand_path "$input"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "links - check_link - link does not exist" {
-  base="${DM__TEST__TEST_DIR}/links"
+test__check_link__link_does_not_exist() {
+  base="${DM_TEST__TMP_TEST_DIR}/links"
   rm -rf "$base"
   mkdir -p "$base"
 
@@ -37,14 +33,17 @@ load test_helper
 
   expected="$DM__GLOBAL__CONFIG__LINK__NOT_EXISTS"
 
+  target_path="${base}/target_file"
+  touch "$target_path"
+
   run _dm_lib__links__check_link "$target_path" "$link_name"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "links - check_link - link exist but points to different path" {
-  base="${DM__TEST__TEST_DIR}/links"
+test__check_link__link_exist_but_points_to_different_path() {
+  base="${DM_TEST__TMP_TEST_DIR}/links"
   rm -rf "$base"
   mkdir -p "$base"
 
@@ -61,12 +60,12 @@ load test_helper
 
   run _dm_lib__links__check_link "$target_path" "$link_name"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "links - check_link - link exist and points to the same target path" {
-  base="${DM__TEST__TEST_DIR}/links"
+test__check_link__link_exist_and_points_to_the_same_target_path() {
+  base="${DM_TEST__TMP_TEST_DIR}/links"
   rm -rf "$base"
   mkdir -p "$base"
 
@@ -80,12 +79,12 @@ load test_helper
 
   run _dm_lib__links__check_link "$target_path" "$link_name"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "links - get_link_target_path - link target can be accessed" {
-  base="${DM__TEST__TEST_DIR}/links"
+test__get_link_target_path__link_target_can_be_accessed() {
+  base="${DM_TEST__TMP_TEST_DIR}/links"
   rm -rf "$base"
   mkdir -p "$base"
 
@@ -100,12 +99,12 @@ load test_helper
 
   run _dm_lib__links__get_link_target_path "$link_name"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 
 }
 
-@test "links - get_link_target_path - even broken links can be resolved" {
+test__get_link_target_path__even_broken_links_can_be_resolved() {
   dummy_link_target="dummy_link_target"
   link_name="dummy_link"
   ln -s "$dummy_link_target" "$link_name"
@@ -116,11 +115,11 @@ load test_helper
 
   rm "$link_name"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "links - raw link string can be processed" {
+test__raw_link__string_can_be_processed() {
   # Mocking readlink
   readlink_mark='resolved'
   readlink() {
@@ -148,6 +147,6 @@ load test_helper
 
   run _dm_lib__links__preprocess_raw_link_string "$module" "$raw_link_string"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }

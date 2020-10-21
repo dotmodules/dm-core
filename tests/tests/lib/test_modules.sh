@@ -1,16 +1,11 @@
-load $DM_LIB_MUT
-load $BATS_MOCK
-load $BATS_ASSERT
-load $BATS_SUPPORT
-load test_helper
+. ../../../src/dm.lib.sh
 
-
-setup_modules() {
-  # Simulating the relative path here ot the modules root directory.
-  export DM__GLOBAL__RUNTIME__MODULES_ROOT=$( \
-    realpath --relative-to="$(pwd)" "${DM__TEST__TEST_DIR}/modules" \
+setup_modules_test() {
+  # Simulating the relative path here to the modules root directory.
+  DM__GLOBAL__RUNTIME__MODULES_ROOT=$( \
+    realpath --relative-to="$(pwd)" "${DM_TEST__TMP_TEST_DIR}/modules" \
   )
-  # Helper variable for shorter lines..
+  # Helper variable to have shorter lines.
   CONF_FILE="$DM__GLOBAL__CONFIG__CONFIG_FILE_NAME"
 
   mkdir -p "${DM__GLOBAL__RUNTIME__MODULES_ROOT}"
@@ -27,27 +22,30 @@ setup_modules() {
   # This should be not detected as a module.
   mkdir -p "${DM__GLOBAL__RUNTIME__MODULES_ROOT}/nested/module4"
   touch    "${DM__GLOBAL__RUNTIME__MODULES_ROOT}/nested/module4/some_file"
+
+  dm_lib__cache__init
+  dm_lib__modules__load
 }
 
-@test "modules - modules can be discovered inside the modules root" {
-  setup_modules
+test__discovery__modules_can_be_discovered_inside_the_modules_root() {
+  setup_modules_test
 
-  dm_lib__modules__load
   run dm_lib__modules__list
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 3
+  assert_status 0
+  assert_output_line_count 3
 
-  assert_line --index 0 --partial "module1"
-  assert_line --index 1 --partial "module2"
-  assert_line --index 2 --partial "nested/module3"
+  assert_line_partially_at_index 1 "module1"
+  assert_line_partially_at_index 2 "module2"
+  assert_line_partially_at_index 3 "nested/module3"
 
-  assert test -f "${lines[0]}/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
-  assert test -f "${lines[1]}/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
-  assert test -f "${lines[2]}/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
+
+  assert_file "$(dm_test__utils__get_line_from_output_by_index 1)/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
+  assert_file "$(dm_test__utils__get_line_from_output_by_index 2)/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
+  assert_file "$(dm_test__utils__get_line_from_output_by_index 3)/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
 }
 
-@test "modules - module can be selected by index" {
+test__selection__module_can_be_selected_by_index() {
   dm_lib__modules__list() {
     echo "one"
     echo "two"
@@ -59,11 +57,11 @@ setup_modules() {
 
   run dm_lib__modules__module_for_index "$selected_index"
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "modules - index is over the range" {
+test__selection__index_is_over_the_range() {
   dm_lib__modules__list() {
     echo "one"
     echo "two"
@@ -74,10 +72,10 @@ setup_modules() {
 
   run dm_lib__modules__module_for_index "$selected_index"
 
-  assert test $status -eq 1
+  assert_status 1
 }
 
-@test "modules - index is below the range" {
+test__selection__index_is_below_the_range() {
   dm_lib__modules__list() {
     echo "one"
     echo "two"
@@ -88,10 +86,10 @@ setup_modules() {
 
   run dm_lib__modules__module_for_index "$selected_index"
 
-  assert test $status -eq 1
+  assert_status 1
 }
 
-@test "modules - index is not a number" {
+test__selection__index_is_not_a_number() {
   dm_lib__modules__list() {
     echo "one"
     echo "two"
@@ -102,5 +100,5 @@ setup_modules() {
 
   run dm_lib__modules__module_for_index "$selected_index"
 
-  assert test $status -eq 1
+  assert_status 1
 }

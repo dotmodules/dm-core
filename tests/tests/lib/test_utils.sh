@@ -1,11 +1,6 @@
-load $DM_LIB_MUT
-load $BATS_MOCK
-load $BATS_ASSERT
-load $BATS_SUPPORT
-load test_helper
+. ../../../src/dm.lib.sh
 
-
-@test "utils - normalize_whitespace - whitespace gets squished" {
+test__normalize_whitespace__whitespace_gets_squished() {
   input="dummy         content      item"
   expected="dummy content item"
   dummy_function() {
@@ -13,11 +8,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - remove_surrounding_whitespace - whitespace gets removed" {
+test__remove_surrounding_whitespace__whitespace_gets_removed() {
   input="        dummy  content   "
   expected="dummy  content"
   dummy_function() {
@@ -25,11 +20,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - trim_list - first item can be acuired" {
+test__trim_list__first_item_can_be_acuired() {
   input="item1 item2 item3"
   expected="item1"
   dummy_function() {
@@ -37,11 +32,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - trim_list - itervals can be used" {
+test__trim_list__intervals_can_be_used() {
   input="item1 item2 item3"
   expected="item1 item2"
   dummy_function() {
@@ -49,11 +44,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - trim_list - endless interval can be used" {
+test__trim_list__endless_interval_can_be_used() {
   input="item1 item2 item3"
   expected="item2 item3"
   dummy_function() {
@@ -61,11 +56,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - trim_list - whitespace gets squeezed" {
+test__trim_list__whitespace_gets_squeezed() {
   input="item1     item2  item3"
   expected="item1 item2"
   dummy_function() {
@@ -73,11 +68,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - select_line - line can be selected case 1" {
+test__select_line__line_can_be_selected_case_1() {
   generator_function() {
     echo "dummy line 1"
     echo "dummy line 2"
@@ -90,11 +85,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - select_line - line can be selected case 2" {
+test__select_line__line_can_be_selected_case_2() {
   generator_function() {
     echo "dummy line 1"
     echo "dummy line 2"
@@ -107,11 +102,11 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
 
-@test "utils - parse_list - messy list gets normalized" {
+test__parse_list__messy_list_gets_normalized() {
   input="     item1     item2  item3                "
   expected="item1 item2 item3"
   dummy_function() {
@@ -119,7 +114,6 @@ load test_helper
   }
   run dummy_function
 
-  assert test $status -eq 0
+  assert_status 0
   assert_output "$expected"
 }
-

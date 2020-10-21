@@ -1,21 +1,17 @@
-load $DM_LIB_MUT
-load $BATS_MOCK
-load $BATS_ASSERT
-load $BATS_SUPPORT
-load test_helper
+. ../../../src/dm.lib.sh
 
 setup() {
   # Creating dummy files that are located in the temp test directory
-  _DM__GLOBAL__VARIABLES__CACHE_FILE="${DM__TEST__TEST_DIR}/var_cache"
-  _DM__GLOBAL__VARIABLES__TEMP_FILE="${DM__TEST__TEST_DIR}/tmp_file"
+  _DM__GLOBAL__VARIABLES__CACHE_FILE="${DM_TEST__TMP_TEST_DIR}/var_cache"
+  _DM__GLOBAL__VARIABLES__TEMP_FILE="${DM_TEST__TMP_TEST_DIR}/tmp_file"
 
   touch "$_DM__GLOBAL__VARIABLES__CACHE_FILE"
   touch "$_DM__GLOBAL__VARIABLES__TEMP_FILE"
 
-  export DM__GLOBAL__VARIABLES__CACHE_FILE=$( \
+  DM__GLOBAL__VARIABLES__CACHE_FILE=$( \
     realpath --relative-to="$(pwd)" "$_DM__GLOBAL__VARIABLES__CACHE_FILE" \
   )
-  export DM__GLOBAL__VARIABLES__TEMP_FILE=$( \
+  DM__GLOBAL__VARIABLES__TEMP_FILE=$( \
     realpath --relative-to="$(pwd)" "$_DM__GLOBAL__VARIABLES__TEMP_FILE" \
   )
 
@@ -30,7 +26,7 @@ setup() {
   }
 }
 
-@test "variables - variables can be loaded" {
+test__variables__variables_can_be_loaded() {
   _dm_lib__variables__collect_all_variables_from_modules() {
     echo "VAR1 v11 v12"
     echo "VAR2 v21 v22"
@@ -38,14 +34,14 @@ setup() {
   dm_lib__variables__load
   run cat "$DM__GLOBAL__VARIABLES__CACHE_FILE"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 2
+  assert_status 0
+  assert_output_line_count 2
 
-  assert_line --index 0 "VAR1 v11 v12"
-  assert_line --index 1 "VAR2 v21 v22"
+  assert_line_at_index 1 "VAR1 v11 v12"
+  assert_line_at_index 2 "VAR2 v21 v22"
 }
 
-@test "variables - variables can be merged" {
+test__variables__variables_can_be_merged() {
   _dm_lib__variables__collect_all_variables_from_modules() {
     echo "VAR1 v1 v2"
     echo "VAR1 v3 v4"
@@ -53,26 +49,26 @@ setup() {
   dm_lib__variables__load
   run cat "$DM__GLOBAL__VARIABLES__CACHE_FILE"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
+  assert_status 0
+  assert_output_line_count 1
 
-  assert_line --index 0 "VAR1 v1 v2 v3 v4"
+  assert_line_at_index 1 "VAR1 v1 v2 v3 v4"
 }
 
-@test "variables - variables gets sorted" {
+test__variables__variables_get_sorted() {
   _dm_lib__variables__collect_all_variables_from_modules() {
     echo "VAR1 v2 v1"
   }
   dm_lib__variables__load
   run cat "$DM__GLOBAL__VARIABLES__CACHE_FILE"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
+  assert_status 0
+  assert_output_line_count 1
 
-  assert_line --index 0 "VAR1 v1 v2"
+  assert_line_at_index 1 "VAR1 v1 v2"
 }
 
-@test "variables - multiple merges could be executed" {
+test__variables__multiple_merges_could_be_executed() {
   _dm_lib__variables__collect_all_variables_from_modules() {
     echo "VAR2 v24 v23"
     echo "VAR3 v32 v31"
@@ -82,15 +78,15 @@ setup() {
   dm_lib__variables__load
   run cat "$DM__GLOBAL__VARIABLES__CACHE_FILE"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 3
+  assert_status 0
+  assert_output_line_count 3
 
-  assert_line --index 0 "VAR1 v11"
-  assert_line --index 1 "VAR2 v21 v22 v23 v24"
-  assert_line --index 2 "VAR3 v31 v32"
+  assert_line_at_index 1 "VAR1 v11"
+  assert_line_at_index 2 "VAR2 v21 v22 v23 v24"
+  assert_line_at_index 3 "VAR3 v31 v32"
 }
 
-@test "variables - variables gets deduplicated" {
+test__variables__variables_gets_deduplicated() {
   _dm_lib__variables__collect_all_variables_from_modules() {
     echo "VAR1 v1"
     echo "VAR1 v1 v2"
@@ -98,8 +94,8 @@ setup() {
   dm_lib__variables__load
   run cat "$DM__GLOBAL__VARIABLES__CACHE_FILE"
 
-  assert test $status -eq 0
-  assert test ${#lines[@]} -eq 1
+  assert_status 0
+  assert_output_line_count 1
 
-  assert_line --index 0 "VAR1 v1 v2"
+  assert_line_at_index 1 "VAR1 v1 v2"
 }

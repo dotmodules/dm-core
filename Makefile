@@ -22,7 +22,12 @@ help:
 
 # =======================================================================================
 #  T E S T   C O M M A N D
+#
+.PHONY: assert_test_environment
+assert_test_environment:
+	@git submodule init
+	@git submodule update
 
 .PHONY: test
-test:
-	@./tests/run_suite.sh
+test: assert_test_environment
+	@./tests/run.sh
