@@ -27,7 +27,9 @@ cd "${DM__GLOBAL__RUNTIME__PATH}"
 # LOAD EXTERNAL LIBRARIES
 #==============================================================================
 
-. ./dm.lib.sh
+DM__GLOBAL__RUNTIME__DM_REPO_ROOT=".."
+# shellcheck source=./dm.lib.sh
+. "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/dm.lib.sh"
 
 #==============================================================================
 # GLOBAL SCRIPT BASED VARIABLES

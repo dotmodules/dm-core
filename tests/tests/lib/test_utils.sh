@@ -1,4 +1,5 @@
-. ../../../src/dm.lib.sh
+DM__GLOBAL__RUNTIME__DM_REPO_ROOT="../../.."
+. "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/dm.lib.sh"
 
 test__normalize_whitespace__whitespace_gets_squished() {
   input="dummy         content      item"

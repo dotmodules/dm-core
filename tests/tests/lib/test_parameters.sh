@@ -1,4 +1,5 @@
-. ../../../src/dm.lib.sh
+DM__GLOBAL__RUNTIME__DM_REPO_ROOT="../../.."
+. "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/dm.lib.sh"
 
 setup() {
   PARAMETER_FILE="${DM_TEST__TMP_TEST_DIR}/paramfile"

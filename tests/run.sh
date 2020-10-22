@@ -17,7 +17,9 @@ cd "$(dirname "$(readlink -f "$0")")"
 # DM_TEST_RUNNER CONFIGURATION
 #==============================================================================
 
+# Relative path to from the current path to the test runner repo.
 DM_TEST__SUBMODULE_PATH_PREFIX="./runner"
+
 DM_TEST__TEST_FILE_PREFIX="test_"
 DM_TEST__TEST_CASE_PREFIX="test_"
 DM_TEST__TEST_CASES_ROOT="./tests"

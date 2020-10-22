@@ -1,4 +1,5 @@
-. ../../../src/dm.lib.sh
+DM__GLOBAL__RUNTIME__DM_REPO_ROOT="../../.."
+. "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/dm.lib.sh"
 
 setup() {
   # Creating dummy files that are located in the temp test directory

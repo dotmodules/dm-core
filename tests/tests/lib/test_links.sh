@@ -1,4 +1,5 @@
-. ../../../src/dm.lib.sh
+DM__GLOBAL__RUNTIME__DM_REPO_ROOT="../../.."
+. "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/dm.lib.sh"
 
 test__expand_path__home_variable_can_be_expanded() {
   HOME='/this/is/a/fake/home'
