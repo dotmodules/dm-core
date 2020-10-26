@@ -1,4 +1,5 @@
 DM__GLOBAL__RUNTIME__DM_REPO_ROOT="../../.."
+# shellcheck source=../../../src/dm.lib.sh
 . "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/dm.lib.sh"
 
 setup_modules_test() {
