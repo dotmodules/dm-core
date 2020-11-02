@@ -6,20 +6,22 @@
 # Prints out the given message to standard error if debug mode is enabled.
 #==============================================================================
 dm_lib__debug() {
-  if [ "$DM__GLOBAL__RUNTIME__DEBUG_ENABLED" = "1" ]
+  if command >&3
   then
     domain="$1"
     message="$2"
-    printf "${DIM}$(date +"%F %T.%N") | %48s | %s${RESET}\n" "$domain" "$message"
-  fi
-} >&2
+    >&3 printf "${DIM}$(date +"%F %T.%N") | %48s | %s\n${RESET}" "$domain" "$message"
+  fi 2>/dev/null
+  # Redirecting standard error to supress the error message if the file
+  # descriptor is not available.
+}
 
 #==============================================================================
 # Prints out a given newline separated list to the debug output in a
 # formatted line-by-line way if debug mode is enabled.
 #==============================================================================
 dm_lib__debug_list() {
-  if [ "$DM__GLOBAL__RUNTIME__DEBUG_ENABLED" = "1" ]
+  if command >&3
   then
     domain="$1"
     message="$2"
@@ -31,5 +33,7 @@ dm_lib__debug_list() {
     do
       dm_lib__debug "$domain" "- '${item}'"
     done
-  fi
-} >&2
+  fi 2>/dev/null
+  # Redirecting standard error to supress the error message if the file
+  # descriptor is not available.
+}

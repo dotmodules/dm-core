@@ -28,12 +28,9 @@ DM__GLOBAL__RUNTIME__MODULES_ROOT="__INVALID__"
 # COLOR AND PRINTOUT
 #==============================================================================
 
-# Ignoring the not used shellcheck errors as these variables are good to have
-# during additional development.
-# This is a special case where double quoting is actually not preferable. More
-# details: https://stackoverflow.com/a/13864829/1565331
-# shellcheck disable=SC2086
-if command -v tput > /dev/null && [ ! -s ${TERM+x} ]
+# Checking the availibility and usability of tput. If it is available and
+# usable we can set the global coloring variables with it.
+if command -v tput >/dev/null && tput init >/dev/null 2>&1
 then
   # shellcheck disable=SC2034
   RED="$(tput setaf 1)"

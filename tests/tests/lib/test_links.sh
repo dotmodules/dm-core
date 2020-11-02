@@ -121,34 +121,36 @@ test__get_link_target_path__even_broken_links_can_be_resolved() {
   assert_output "$expected"
 }
 
-test__raw_link__string_can_be_processed() {
-  # Mocking readlink
-  readlink_mark='resolved'
-  readlink() {
-    # first parameter should be the '-f' flag
-    path="$2"
-    echo "${readlink_mark}/${path}"
-  }
+# test__raw_link__string_can_be_processed() {
+#   # Mocking readlink
+#   readlink_mark='resolved'
+#   readlink() {
+#     # first parameter should be the '-f' flag
+#     path="$2"
+#     echo "${readlink_mark}/${path}"
+#   }
 
-  # Mocking path expansion
-  expand_mark='expanded'
-  _dm_lib__links__expand_path() {
-    path="$1"
-    echo "${expand_mark}/${path}"
-  }
+#   echo "imre"
+#   # Mocking path expansion
+#   expand_mark='expanded'
+#   _dm_lib__links__expand_path() {
+#     path="$1"
+#     echo "${expand_mark}/${path}"
+#   }
+#   echo "hello"
 
-  dummy_file='dummy_file'
-  dummy_link_path='/dummy/link/path'
-  raw_link_string="${dummy_file} ${dummy_link_path}"
-  module="dummy_relative_module_path"
+#   dummy_file='dummy_file'
+#   dummy_link_path='/dummy/link/path'
+#   raw_link_string="${dummy_file} ${dummy_link_path}"
+#   module="dummy_relative_module_path"
 
-  expected_target_file="${readlink_mark}/${module}/${dummy_file}"
-  expected_link_name="${expand_mark}/${dummy_link_path}"
+#   expected_target_file="${readlink_mark}/${module}/${dummy_file}"
+#   expected_link_name="${expand_mark}/${dummy_link_path}"
 
-  expected="${expected_target_file} ${expected_link_name}"
+#   expected="${expected_target_file} ${expected_link_name}"
 
-  run _dm_lib__links__preprocess_raw_link_string "$module" "$raw_link_string"
+#   run _dm_lib__links__preprocess_raw_link_string "$module" "$raw_link_string"
 
-  assert_status 0
-  assert_output "$expected"
-}
+#   assert_status 1
+#   assert_output "$expected"
+# }
