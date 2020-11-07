@@ -41,7 +41,6 @@ test__discovery__modules_can_be_discovered_inside_the_modules_root() {
   assert_line_partially_at_index 2 "module2"
   assert_line_partially_at_index 3 "nested/module3"
 
-
   assert_file "$(dm_test__utils__get_line_from_output_by_index 1)/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
   assert_file "$(dm_test__utils__get_line_from_output_by_index 2)/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
   assert_file "$(dm_test__utils__get_line_from_output_by_index 3)/${DM__GLOBAL__CONFIG__CONFIG_FILE_NAME}"
