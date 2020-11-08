@@ -25,8 +25,7 @@ help:
 #
 .PHONY: assert_test_environment
 assert_test_environment:
-	@git submodule init
-	@git submodule update
+	@./utils/init_submodules.sh
 
 .PHONY: test
 test: assert_test_environment
