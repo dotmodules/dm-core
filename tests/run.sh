@@ -18,18 +18,19 @@ cd "$(dirname "$(readlink -f "$0")")"
 #==============================================================================
 
 # Relative path to from the current path to the test runner repo.
-DM_TEST__SUBMODULE_PATH_PREFIX="./runner"
+DM_TEST__CONFIG__SUBMODULE_PATH_PREFIX='./runner'
 
-DM_TEST__TEST_FILE_PREFIX="test_"
-DM_TEST__TEST_CASE_PREFIX="test_"
-DM_TEST__TEST_CASES_ROOT="./tests"
+DM_TEST__CONFIG__TEST_FILE_PREFIX='test_'
+DM_TEST__CONFIG__TEST_CASE_PREFIX='test_'
+DM_TEST__CONFIG__TEST_CASES_ROOT='./tests'
+DM_TEST__CONFIG__DEBUG_ENABLED=0
 
 #==============================================================================
 # TEST RUNNER IMPORT
 #==============================================================================
 
 # shellcheck source=./runner/dm.test.sh
-. "${DM_TEST__SUBMODULE_PATH_PREFIX}/dm.test.sh"
+. "${DM_TEST__CONFIG__SUBMODULE_PATH_PREFIX}/dm.test.sh"
 
 #==============================================================================
 # SHELLCHECK VALIDATION
