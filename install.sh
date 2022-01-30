@@ -144,7 +144,7 @@ get_modules_relative_path() {
 }
 
 assert_repo
-log "Installing  dotmodules to your repo.."
+log "Installing dotmodules into your repository.."
 path_prefix=$(get_path_prefix)
 log "Path prefix calculated: '${path_prefix}'"
 modules_relative_path=$(get_modules_relative_path)
@@ -154,6 +154,6 @@ log "Modules relative path calculated: '${modules_relative_path}'"
 # invocation's directory.
 sed -e "s#__PREFIX__#${path_prefix}#" \
     -e "s#__RELATIVE__#${modules_relative_path}#" \
-    "${path_prefix}/Makefile.template" > Makefile
+    "${path_prefix}/../assets/Makefile.template" > Makefile
 
 log "Makefile added to your repository."

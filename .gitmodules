@@ -1,3 +1,6 @@
-[submodule "tests/runner"]
-	path = tests/runner
+[submodule "dependencies/dm-tools"]
+	path = dependencies/dm-tools
+	url = https://github.com/dotmodules/dm-tools.git
+[submodule "dependencies/dm-test"]
+	path = dependencies/dm-test
 	url = https://github.com/dotmodules/dm-test.git

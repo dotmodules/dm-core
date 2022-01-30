@@ -1,5 +1,23 @@
-# =======================================================================================
-#  M A K E   S E T T I N G S
+# =============================================================================
+#  MAKEFILE OPTIONAL INPUT VARIABLES
+
+DM_CONFIG__DIMENSIONS__TEXT_WRAP_LIMIT   := 90
+DM_CONFIG__DIMENSIONS__DEFAULT_INDENT    := 4
+DM_CONFIG__CLI__PROMPT_TEMPLATE          := <<space>><<bold>>dm<<reset>> \#<<space>>
+
+DM_CONFIG__COMMAND_HOTKEYS__EXIT         := q|quit|exit
+DM_CONFIG__COMMAND_HOTKEYS__HELP         := ?|help
+DM_CONFIG__COMMAND_HOTKEYS__VERSION      := version
+DM_CONFIG__COMMAND_HOTKEYS__VARIABLES    := v|variables
+DM_CONFIG__COMMAND_HOTKEYS__HOOKS        := h|hooks
+DM_CONFIG__COMMAND_HOTKEYS__SIGNALS      := s|signals
+DM_CONFIG__COMMAND_HOTKEYS__MODULES      := m|modules
+DM_CONFIG__COMMAND_HOTKEYS__DEPLOY       := d|deploy
+
+DM_CONFIG__WARNING__WRAPPED_DOCS         := 1
+
+# =============================================================================
+#  MAKE SETTINGS
 
 .DEFAULT_GOAL := make_help
 SHELL := /bin/sh
@@ -8,8 +26,8 @@ PATH_PREFIX := __PREFIX__
 RELATIVE_MODULES_PATH := __RELATIVE__
 
 
-# =======================================================================================
-#  H E L P E R   V A R I A B L E S
+# =============================================================================
+#  HELPER VARIABLES
 
 BOLD   := $(shell tput bold)
 RED    := $(shell tput setaf 1)
@@ -27,8 +45,8 @@ WARNING := [ $(BOLD)$(YELLOW)!!$(RESET) ]
 ERROR   := [$(BOLD)$(RED)FAIL$(RESET)]
 
 
-# =======================================================================================
-#  H E L P   C O M M A N D
+# =============================================================================
+#  HELP COMMAND
 
 .PHONY: make_help
 make_help:
@@ -43,8 +61,8 @@ make_help:
 	@echo ""
 
 
-# =======================================================================================
-#  D O T   M O D U L E S   C O M M A N D S
+# =============================================================================
+#  DOT MODULES COMMANDS
 
 .PHONY: help
 help:

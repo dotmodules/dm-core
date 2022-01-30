@@ -5,7 +5,7 @@
 
 if git submodule status | grep --silent '^-'
 then
-	echo "> Initializing submodules.."
-	git submodule init
+  echo "> Initializing submodules.."
+  git submodule init
   git submodule update
 fi

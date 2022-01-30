@@ -1,12 +1,12 @@
 # =======================================================================================
-#  M A K E   S E T T I N G S
+#  MAKE SETTINGS
 
 .DEFAULT_GOAL := help
 NAME := DOTMODULES
 
 
 # =======================================================================================
-#  H E L P   C O M M A N D
+#  HELP COMMAND
 
 .PHONY: help
 help:
@@ -15,18 +15,19 @@ help:
 	@echo "  $(NAME) make interface "
 	@echo "-------------------------------------------------------------------"
 	@echo ""
+	@echo "   init              Initializes the repository's dependencies."
 	@echo "   help              Prints out this help message."
 	@echo "   test              Runs the test suite."
 	@echo ""
 
 
 # =======================================================================================
-#  T E S T   C O M M A N D
-#
-.PHONY: assert_test_environment
-assert_test_environment:
-	@./utils/init_submodules.sh
+#  TEST COMMAND
+
+.PHONY: init
+init:
+	@git submodule update --init --recursive
 
 .PHONY: test
-test: assert_test_environment
+test:
 	@./tests/run.sh
