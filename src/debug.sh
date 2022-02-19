@@ -1,3 +1,5 @@
+#!/bin/sh
+
 #==============================================================================
 # DEBUGGING FUNCTIONALITY
 #==============================================================================
@@ -5,7 +7,7 @@
 #==============================================================================
 # Prints out the given message to standard error if debug mode is enabled.
 #==============================================================================
-dm_lib__debug() {
+dm__debug() {
   if command >&3
   then
     domain="$1"
@@ -20,18 +22,18 @@ dm_lib__debug() {
 # Prints out a given newline separated list to the debug output in a
 # formatted line-by-line way if debug mode is enabled.
 #==============================================================================
-dm_lib__debug_list() {
+dm__debug_list() {
   if command >&3
   then
     domain="$1"
     message="$2"
     list="$3"
 
-    dm_lib__debug "$domain" "$message"
+    dm__debug "$domain" "$message"
 
     echo "$list" | while read -r item
     do
-      dm_lib__debug "$domain" "- '${item}'"
+      dm__debug "$domain" "- '${item}'"
     done
   fi 2>/dev/null
   # Redirecting standard error to supress the error message if the file

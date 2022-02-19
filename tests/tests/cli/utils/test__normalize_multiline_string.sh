@@ -1,21 +1,28 @@
 #!/bin/sh
 
-DM__GLOBAL__RUNTIME__DM_REPO_ROOT="../../../.."
-# shellcheck source=../../../../src/cli/utils.sh
-. "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/cli/utils.sh"
-
+export DM__GLOBAL__RUNTIME__REPO_ROOT="../../../.."
+# shellcheck source=../../../../src/init.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/init.sh"
 
 test__repeated_spaces_will_be_squeezed() {
   input_string='a b  c     d'
-  expected='a b c d'
-  result="$(dm_tools__echo "$input_string" | _dm_cli__utils__normalize_multiline_string)"
-  assert_equal "$expected" "$result"
+
+  dummy_function() {
+    dm_tools__echo "$input_string" | dm_cli__utils__normalize_multiline_string
+  }
+  run dummy_function
+
+  assert_status 0
+  assert_output 'a b c d'
+  assert_no_error
 }
 
 test__leading_and_trailing_whitespace_will_be_removed() {
   input_string='    a b c     '
   expected='a b c'
-  result="$(dm_tools__echo "$input_string" | _dm_cli__utils__normalize_multiline_string)"
+  result="$( \
+    dm_tools__echo "$input_string" | dm_cli__utils__normalize_multiline_string \
+  )"
   assert_equal "$expected" "$result"
 }
 
@@ -28,9 +35,15 @@ test__line_breaks_will_be_converted_to_spaces() {
     text
     ' \
   )"
-  expected='This is a multiline text'
-  result="$(dm_tools__echo "$input_string" | _dm_cli__utils__normalize_multiline_string)"
-  assert_equal "$expected" "$result"
+
+  dummy_function() {
+    dm_tools__echo "$input_string" | dm_cli__utils__normalize_multiline_string
+  }
+  run dummy_function
+
+  assert_status 0
+  assert_output 'This is a multiline text'
+  assert_no_error
 }
 
 test__intended_use_case() {
@@ -44,7 +57,7 @@ test__intended_use_case() {
     is a
     multiline
     text
-    ' | _dm_cli__utils__normalize_multiline_string \
+    ' | dm_cli__utils__normalize_multiline_string \
   )"
   expected='This is a multiline text'
   assert_equal "$expected" "$result"

@@ -24,11 +24,11 @@
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-_dm_cli__utils__normalize_multiline_string() {
+dm_cli__utils__normalize_multiline_string() {
   dm_tools__cat - | \
     dm_tools__tr --replace '\n' ' ' | \
     dm_tools__tr --squeeze-repeats '[:space:]' | \
-    dm_tools__sed --expression 's/^\s*//;s/\s*$//'
+    dm_tools__sed --expression 's/^\s*//g;s/\s*$//g' | dm_tools__cat
 }
 
 #==============================================================================
@@ -51,7 +51,7 @@ _dm_cli__utils__normalize_multiline_string() {
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-_dm_cli__utils__indent() {
+dm_cli__utils__indent() {
   # Indents the given message to a common level.
   dm_tools__cat - | \
     dm_tools__sed --expression "s/^/${DM__GLOBAL__CONFIG__CLI__INDENT}/"
@@ -111,7 +111,7 @@ _dm_cli__utils__indent() {
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-_dm_cli__utils__header_multiline() {
+dm_cli__utils__header_multiline() {
   header_padding="$1"
   format="$2"
   header="$3"

@@ -1,20 +1,19 @@
-# shellcheck shell=sh
-#==============================================================================
-#       _             _ _ _          _
-#      | |           | (_) |        | |
-#    __| |_ __ ___   | |_| |__   ___| |__
-#   / _` | '_ ` _ \  | | | '_ \ / __| '_ \
-#  | (_| | | | | | |_| | | |_) |\__ \ | | |
-#   \__,_|_| |_| |_(_)_|_|_.__(_)___/_| |_|
-#
-#==============================================================================
+#!/bin/sh
 
 
 #==============================================================================
 # LOADING LIBRARY MODULES
 #==============================================================================
-# shellcheck source=./lib/modules.sh
-. "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/lib/modules.sh"
+# shellcheck source=./debug.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/debug.sh"
+# shellcheck source=./utils.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/utils.sh"
+# shellcheck source=./cli/utils.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/cli/utils.sh"
+# shellcheck source=./cli/interpreter.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/cli/interpreter.sh"
+# shellcheck source=./cli/commands.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/cli/commands.sh"
 # # shellcheck source=./lib/global_variables.sh
 # . "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/lib/global_variables.sh"
 # # shellcheck source=./lib/external_parameters.sh
@@ -35,4 +34,3 @@
 # . "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/lib/deploy.sh"
 # # shellcheck source=./lib/hooks.sh
 # . "${DM__GLOBAL__RUNTIME__DM_REPO_ROOT}/src/lib/hooks.sh"
-
