@@ -1,16 +1,20 @@
 #!/bin/sh
 
 export DM__GLOBAL__RUNTIME__REPO_ROOT="../../../.."
-# shellcheck source=../../../../src/init.sh
-. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/init.sh"
+# shellcheck source=../../../../src/load_sources.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/load_sources.sh"
+
+setup_file() {
+  dm__debug__init
+}
 
 test__empty_line_gets_indented() {
   # Setting up the global variable for this test.
-  export DM__GLOBAL__CONFIG__CLI__INDENT='  '
+  export DM__CONFIG__CLI__INDENT='  '
   input_string=''
 
   dummy_function () {
-    dm_tools__echo "$input_string" | dm_cli__utils__indent
+    dm_tools__echo "$input_string" | dm__cli__display__indent
   }
   run dummy_function
 
@@ -21,11 +25,11 @@ test__empty_line_gets_indented() {
 
 test__single_line_can_be_indented() {
   # Setting up the global variable for this test.
-  export DM__GLOBAL__CONFIG__CLI__INDENT='  '
+  export DM__CONFIG__CLI__INDENT='  '
   input_string='hello'
 
   dummy_function () {
-    dm_tools__echo "$input_string" | dm_cli__utils__indent
+    dm_tools__echo "$input_string" | dm__cli__display__indent
   }
   run dummy_function
 
@@ -36,7 +40,7 @@ test__single_line_can_be_indented() {
 
 test__multi_line_can_be_indented() {
   # Setting up the global variable for this test.
-  export DM__GLOBAL__CONFIG__CLI__INDENT='  '
+  export DM__CONFIG__CLI__INDENT='  '
   input_string="$( \
     dm_tools__echo 'aaa'; \
     dm_tools__echo 'bbb'; \
@@ -44,7 +48,7 @@ test__multi_line_can_be_indented() {
   )"
 
   dummy_function () {
-    dm_tools__echo "$input_string" | dm_cli__utils__indent
+    dm_tools__echo "$input_string" | dm__cli__display__indent
   }
   run dummy_function
 

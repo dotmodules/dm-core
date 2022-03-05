@@ -1,12 +1,16 @@
 #!/bin/sh
 
 export DM__GLOBAL__RUNTIME__REPO_ROOT="../../../.."
-# shellcheck source=../../../../src/init.sh
-. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/init.sh"
+# shellcheck source=../../../../src/load_sources.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/load_sources.sh"
+
+setup_file() {
+  dm__debug__init
+}
 
 test__header__smaller_padding_than_header__nothing_should_happed() {
   # The global warp limit shouldn't affect this test.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='1000'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='1000'
 
   # The header is longer than the header padding length, so no padding and no
   # trimming should happen. The header should appear as is.
@@ -15,7 +19,7 @@ test__header__smaller_padding_than_header__nothing_should_happed() {
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -28,7 +32,7 @@ test__header__smaller_padding_than_header__nothing_should_happed() {
 
 test__header__same_padding_size__nothing_should_happen() {
   # The global warp limit shouldn't affect this test.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='1000'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='1000'
 
   # The header is the same size as the header padding length, so no padding and
   # no trimming should happen. The header should appear as is.
@@ -37,7 +41,7 @@ test__header__same_padding_size__nothing_should_happen() {
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -50,7 +54,7 @@ test__header__same_padding_size__nothing_should_happen() {
 
 test__header__bigger_padding_size__header_should_be_padded() {
   # The global warp limit shouldn't affect this test.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='1000'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='1000'
 
   # The header is shorter than the header padding length, so the header should
   # be left padded by the difference.
@@ -59,7 +63,7 @@ test__header__bigger_padding_size__header_should_be_padded() {
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -74,14 +78,14 @@ test__header__bigger_padding_size__header_should_be_padded() {
 test__wrapping__global_wrapping_is_the_same_size() {
   # The global warp limit is the same as the line lenght: no wrapping should
   # happen. The line is 32 characters long.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='32'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='32'
 
   header='header'
   header_padding='8'
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -96,14 +100,14 @@ test__wrapping__global_wrapping_is_the_same_size() {
 test__wrapping__global_wrapping_is_smaller() {
   # The global warp limit is smaller than the line size = wrapping should
   # happen! The line is 32 characters long.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
 
   header='header'
   header_padding='8'
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -120,14 +124,14 @@ test__wrapping__global_wrapping_is_smaller() {
 test__wrapping__global_wrapping_limit_is_before_a_whitespace() {
   # The global warp limit is smaller than the line size = wrapping should
   # happen! The line is 32 characters long.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='24'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='24'
 
   header='header'
   header_padding='8'
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -145,14 +149,14 @@ test__wrapping__global_wrapping_limit_is_before_a_whitespace() {
 test__wrapping__global_wrapping_limit_is_at_a_whitespace() {
   # The global warp limit is smaller than the line size = wrapping should
   # happen! The line is 32 characters long.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='25'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='25'
 
   header='header'
   header_padding='8'
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -169,14 +173,14 @@ test__wrapping__global_wrapping_limit_is_at_a_whitespace() {
 test__wrapping__multiple_wrappings_can_happen() {
   # The global warp limit is smaller than the line size = wrapping should
   # happen! The line is 32 characters long.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='20'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='20'
 
   header='header'
   header_padding='8'
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -194,14 +198,14 @@ test__wrapping__multiple_wrappings_can_happen() {
 test__wrapping__global_wrapping_limit_is_smaller_than_the_first_word() {
   # If the global wrapping limit is smaller than the first word after the
   # heading, the word will be splitted up.
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='12'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='12'
 
   header='header'
   header_padding='8'
   format="%${header_padding}s %s\n"
   lines='value_1 value_2 value_3'
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -222,7 +226,7 @@ test__wrapping__global_wrapping_limit_is_smaller_than_the_first_word() {
 }
 
 test__wrapping__whitespace_should_be_wrapped_too() {
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
 
   header='header'
   header_padding='8'
@@ -235,7 +239,7 @@ test__wrapping__whitespace_should_be_wrapped_too() {
   # the trailing whitespace is removed if present. In this way, indented lines
   # can be persisted.
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -249,7 +253,7 @@ test__wrapping__whitespace_should_be_wrapped_too() {
 }
 
 test__wrapping__multiline_input_handling() {
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
 
   header='header'
   header_padding='8'
@@ -261,7 +265,7 @@ test__wrapping__multiline_input_handling() {
     dm_tools__echo 'Line 3 has some internal    whitespace   !'; \
   )"
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \
@@ -284,7 +288,7 @@ test__wrapping__multiline_input_handling() {
 }
 
 test__wrapping__multiline_input_handling_with_indentation() {
-  export DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
+  export DM__CONFIG__CLI__TEXT_WRAP_LIMIT='31'
 
   header='header'
   header_padding='8'
@@ -295,7 +299,7 @@ test__wrapping__multiline_input_handling_with_indentation() {
     dm_tools__echo '  This line too!'; \
   )"
 
-  run dm_cli__utils__header_multiline \
+  run dm__cli__display__header_multiline \
       "$header_padding" \
       "$format" \
       "$header" \

@@ -1,8 +1,12 @@
 #!/bin/sh
 
 export DM__GLOBAL__RUNTIME__REPO_ROOT="../../.."
-# shellcheck source=../../../src/init.sh
-. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/init.sh"
+# shellcheck source=../../../src/load_sources.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/load_sources.sh"
+
+setup_file() {
+  dm__debug__init
+}
 
 test__whitespace_will_be_squeezed() {
   input_string='a b  c     d'

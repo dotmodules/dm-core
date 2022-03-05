@@ -65,10 +65,11 @@ fi
 # GLOBAL VARIABLES
 #==============================================================================
 
-VERSION=$(cat "${DM_REPO_ROOT}/VERSION")
+VERSION=$(dm_tools__cat "${DM_REPO_ROOT}/VERSION")
 DEFAULT_MODULES_DIR='modules'
 MAKEFILE_TEMPLATE_PATH='templates/Makefile.template'
 MAKEFILE_NAME='Makefile'
+PARAMETERS_FILE_NAME='dm_parameters.tmp'
 
 if dm_tools__tput__is_available
 then
@@ -178,7 +179,7 @@ EOM
 #==============================================================================
 calculate_relative_path_for() {
   target_path="$1"
-  realpath --relative-to="$DM_REPO_ROOT" "$target_path"
+  dm_tools__realpath --relative-to "$DM_REPO_ROOT" "$target_path"
 }
 
 #==============================================================================
@@ -209,14 +210,12 @@ done
 # ENTRY POINT
 #==============================================================================
 
-
 dm_tools__echo ''
 dm_tools__echo "  ${BOLD}DOTMODULES INSTALLER SCRIPT${RESET}"
 dm_tools__echo ''
 
-parameters_file_name='dm_parameters.tmp'
 relative_parameters_file_path="$( \
-  calculate_relative_path_for "$(pwd)/${parameters_file_name}" \
+  calculate_relative_path_for "$(pwd)/${PARAMETERS_FILE_NAME}" \
 )"
 relative_modules_path="$(calculate_relative_path_for "$(pwd)/${MODULES_DIR}")"
 
@@ -227,11 +226,21 @@ dm_tools__echo "    Calculated relative modules directory path: ${GREEN}${relati
 
 # Substitute calculated variables to the Makefile template and place it to the
 # invocation's directory.
-dm_tools__sed --expression "s#__PREFIX__#${DM_REPO_ROOT}#" \
-    --expression "s#__PARAMETERS_FILE_NAME__#${parameters_file_name}#" \
-    --expression "s#__RELATIVE_MODULES_PATH__#${relative_modules_path}#" \
-    --expression "s#__RELATIVE_PARAMETERS_FILE_PATH__#${relative_parameters_file_path}#" \
-    "${DM_REPO_ROOT}/${MAKEFILE_TEMPLATE_PATH}" > "${MAKEFILE_NAME}"
+dm_tools__sed \
+  --expression "s#__PREFIX__#${DM_REPO_ROOT}#" \
+  "${DM_REPO_ROOT}/${MAKEFILE_TEMPLATE_PATH}" > "${MAKEFILE_NAME}"
+dm_tools__sed \
+  --in-place '' \
+  --expression "s#__PARAMETERS_FILE_NAME__#${PARAMETERS_FILE_NAME}#" \
+  "${MAKEFILE_NAME}"
+dm_tools__sed \
+  --in-place '' \
+  --expression "s#__RELATIVE_MODULES_PATH__#${relative_modules_path}#" \
+  "${MAKEFILE_NAME}"
+dm_tools__sed \
+  --in-place '' \
+  --expression "s#__RELATIVE_PARAMETERS_FILE_PATH__#${relative_parameters_file_path}#" \
+  "${MAKEFILE_NAME}"
 
 dm_tools__echo ''
-dm_tools__echo 'Makefile added to your repository.'
+dm_tools__echo "    ${BOLD}Makefile template generated.${RESET}"

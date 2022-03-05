@@ -1,50 +1,48 @@
 #!/bin/sh
+#==============================================================================
+#   _   _      _
+#  | | | | ___| |_ __
+#  | |_| |/ _ \ | '_ \
+#  |  _  |  __/ | |_) |
+#  |_| |_|\___|_| .__/
+#               |_|
+#==============================================================================
+# COMMAND: HELP
+#==============================================================================
+
+export DM__CLI__COMMANDS__HELP__NAME='dm__cli__commands__help'
+export DM__CLI__COMMANDS__HELP__DOCS='Prints out this help message. This is the default command.'
 
 #==============================================================================
-# DEBUGGING FUNCTIONALITY
-#==============================================================================
-
-# Global variable that holds the debug state. It should be initialized. Other
-# values than '1' would make the debugging system disabled.
-DM__DEBUG__RUNTIME__DEBUG_ENABLED='___INVALID___'
-
-#==============================================================================
-# Initializes the debug system. Debugging will be enabled if the current process
-# has file descriptor 3 attached to it.
+# Top level interpreter function for the command help.
 #------------------------------------------------------------------------------
 # Globals:
-#   DM__DEBUG__RUNTIME__DEBUG_ENABLED
+#   None
 # Arguments:
 #   None
 # STDIN:
 #   None
 #------------------------------------------------------------------------------
 # Output variables:
-#   DM__DEBUG__RUNTIME__DEBUG_ENABLED
-# STDOUT:
 #   None
+# STDOUT:
+#   Help text.
 # STDERR:
 #   None
-# FD3:
-#   Debug message.
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-dm__debug__init() {
-  if command >&3
-  then
-    DM__DEBUG__RUNTIME__DEBUG_ENABLED='1'
-    dm__debug 'dm__debug__init' 'debugging has been enabled'
-  # Redirecting standard error to supress the error message if the file
-  # descriptor is not available.
-  fi 2>/dev/null
+dm__cli__commands__help() {
+  _dm__cli__commands__help__title
+  _dm__cli__commands__help__list_commands
+  dm_tools__echo ''
 }
 
 #==============================================================================
-# Prints out the given message to standard error if debug mode is enabled.
+# Helper function that prints the help text title.
 #------------------------------------------------------------------------------
 # Globals:
-#   DM__DEBUG__RUNTIME__DEBUG_ENABLED
+#   DM__CONFIG__VERSION
 # Arguments:
 #   None
 # STDIN:
@@ -53,29 +51,24 @@ dm__debug__init() {
 # Output variables:
 #   None
 # STDOUT:
-#   None
+#   Help text title.
 # STDERR:
 #   None
-# FD3:
-#   Debug message.
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-dm__debug() {
-  if [ "$DM__DEBUG__RUNTIME__DEBUG_ENABLED" = '1' ]
-  then
-    domain="$1"
-    message="$2"
-    >&3 printf "${DIM}$(date +"%F %T.%N") | %48s | %s\n${RESET}" "$domain" "$message"
-  fi
+_dm__cli__commands__help__title() {
+  dm_tools__echo ''
+  dm__cli__display__header "DOTMODULES v${DM__CONFIG__VERSION}"
 }
 
 #==============================================================================
-# Prints out a given newline separated list to the debug output in a formatted
-# line-by-line way if debug mode is enabled.
+# Helper function that prints the available commands for the help text.
 #------------------------------------------------------------------------------
 # Globals:
-#   DM__DEBUG__RUNTIME__DEBUG_ENABLED
+#   BOLD
+#   CYAN
+#   RESET
 # Arguments:
 #   None
 # STDIN:
@@ -84,26 +77,28 @@ dm__debug() {
 # Output variables:
 #   None
 # STDOUT:
-#   None
+#   Help text title.
 # STDERR:
 #   None
-# FD3:
-#   Debug message.
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-dm__debug_list() {
-  if [ "$DM__DEBUG__RUNTIME__DEBUG_ENABLED" = '1' ]
-  then
-    domain="$1"
-    message="$2"
-    list="$3"
+_dm__cli__commands__help__list_commands() {
+  dm_tools__echo ''
+  dm__cli__display__header 'AVAILABLE COMMANDS'
 
-    dm__debug "$domain" "$message"
+  dm__cli__commands__get_docs | while read -r line
+  do
+    hotkeys="${line%% *}"  # getting the first element from the list
+    doc="${line#* }"  # getting all items but the first
 
-    echo "$list" | while read -r item
-    do
-      dm__debug "$domain" "- '${item}'"
-    done
-  fi
+    header_padding='16'
+    format="${BOLD}${CYAN}%${header_padding}s${RESET} %s\n"
+
+    dm__cli__display__header_multiline \
+      "$header_padding" \
+      "$format" \
+      "$hotkeys" \
+      "$doc"
+  done
 }

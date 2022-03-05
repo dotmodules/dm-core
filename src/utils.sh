@@ -182,3 +182,58 @@ dm__utils__line_by_index() {
 
   dm_tools__echo "$line"
 }
+
+#==============================================================================
+# Normalizes the piped string by replacing the newline characters with spaces
+# and removes the repeated whitespace characters. This could be useful if a
+# longer text needs to be stored in a single variable. At the variable
+# definition the text could be broken into multiple lines to have a more cleaner
+# source file. This function will normalize the long text as if it was defined
+# in a continous line.
+#------------------------------------------------------------------------------
+# Globals:
+#   None
+# Arguments:
+#   None
+# STDIN:
+#   Text to be normalized.
+#------------------------------------------------------------------------------
+# Output variables:
+#   None
+# STDOUT:
+#   Normalized text as a single line.
+# STDERR:
+#   None
+# Status:
+#   0 - Other status is not expected.
+#==============================================================================
+dm__utils__normalize_multiline_string() {
+  dm_tools__cat - | \
+    dm_tools__tr --replace '\n' ' ' | \
+    dm_tools__tr --squeeze-repeats '[:space:]' | \
+    dm_tools__sed --expression 's/^\s*//g;s/\s*$//g' | dm_tools__cat
+}
+
+#==============================================================================
+# Function that removes empty lines that contains only whitespace from the input
+# lines.
+#------------------------------------------------------------------------------
+# Globals:
+#   None
+# Arguments:
+#   None
+# STDIN:
+#   Lines to be normalized.
+#------------------------------------------------------------------------------
+# Output variables:
+#   None
+# STDOUT:
+#   Normalized lines.
+# STDERR:
+#   None
+# Status:
+#   0 - Other status is not expected.
+#==============================================================================
+dm__utils__remove_empty_lines() {
+  dm_tools__cat - | dm_tools__sed --expression '/^[[:space:]]*$/d'
+}

@@ -1,14 +1,18 @@
 #!/bin/sh
 
-export DM__GLOBAL__RUNTIME__REPO_ROOT="../../../.."
-# shellcheck source=../../../../src/init.sh
-. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/init.sh"
+export DM__GLOBAL__RUNTIME__REPO_ROOT="../../.."
+# shellcheck source=../../../src/load_sources.sh
+. "${DM__GLOBAL__RUNTIME__REPO_ROOT}/src/load_sources.sh"
+
+setup_file() {
+  dm__debug__init
+}
 
 test__repeated_spaces_will_be_squeezed() {
   input_string='a b  c     d'
 
   dummy_function() {
-    dm_tools__echo "$input_string" | dm_cli__utils__normalize_multiline_string
+    dm_tools__echo "$input_string" | dm__utils__normalize_multiline_string
   }
   run dummy_function
 
@@ -21,7 +25,7 @@ test__leading_and_trailing_whitespace_will_be_removed() {
   input_string='    a b c     '
   expected='a b c'
   result="$( \
-    dm_tools__echo "$input_string" | dm_cli__utils__normalize_multiline_string \
+    dm_tools__echo "$input_string" | dm__utils__normalize_multiline_string \
   )"
   assert_equal "$expected" "$result"
 }
@@ -37,7 +41,7 @@ test__line_breaks_will_be_converted_to_spaces() {
   )"
 
   dummy_function() {
-    dm_tools__echo "$input_string" | dm_cli__utils__normalize_multiline_string
+    dm_tools__echo "$input_string" | dm__utils__normalize_multiline_string
   }
   run dummy_function
 
@@ -57,7 +61,7 @@ test__intended_use_case() {
     is a
     multiline
     text
-    ' | dm_cli__utils__normalize_multiline_string \
+    ' | dm__utils__normalize_multiline_string \
   )"
   expected='This is a multiline text'
   assert_equal "$expected" "$result"

@@ -1,42 +1,11 @@
 #!/bin/sh
 
 #==============================================================================
-# Normalizes the piped string by replacing the newline characters with spaces
-# and removes the repeated whitespace characters. This could be useful if a
-# longer text needs to be stored in a single variable. At the variable
-# definition the text could be broken into multiple lines to have a more cleaner
-# source file. This function will normalize the long text as if it was defined
-# in a continous line.
-#------------------------------------------------------------------------------
-# Globals:
-#   None
-# Arguments:
-#   None
-# STDIN:
-#   Text to be normalized.
-#------------------------------------------------------------------------------
-# Output variables:
-#   None
-# STDOUT:
-#   Normalized text as a single line.
-# STDERR:
-#   None
-# Status:
-#   0 - Other status is not expected.
-#==============================================================================
-dm_cli__utils__normalize_multiline_string() {
-  dm_tools__cat - | \
-    dm_tools__tr --replace '\n' ' ' | \
-    dm_tools__tr --squeeze-repeats '[:space:]' | \
-    dm_tools__sed --expression 's/^\s*//g;s/\s*$//g' | dm_tools__cat
-}
-
-#==============================================================================
 # Helper function that indents every line sent to its standard input with a
 # predefined amount.
 #------------------------------------------------------------------------------
 # Globals:
-#   DM__GLOBAL__CONFIG__CLI__INDENT
+#   DM__CONFIG__CLI__INDENT
 # Arguments:
 #   None
 # STDIN:
@@ -51,10 +20,10 @@ dm_cli__utils__normalize_multiline_string() {
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-dm_cli__utils__indent() {
+dm__cli__display__indent() {
   # Indents the given message to a common level.
   dm_tools__cat - | \
-    dm_tools__sed --expression "s/^/${DM__GLOBAL__CONFIG__CLI__INDENT}/"
+    dm_tools__sed --expression "s/^/${DM__CONFIG__CLI__INDENT}/"
 }
 
 #==============================================================================
@@ -85,7 +54,7 @@ dm_cli__utils__indent() {
 # they will be cleaned up.
 #------------------------------------------------------------------------------
 # Globals:
-#   DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT
+#   DM__CONFIG__CLI__TEXT_WRAP_LIMIT
 # Arguments:
 #   [1] header_padding - This parameter is used to calculate the wrapping point
 #       for the multiline text. This size will be subtracted from the global
@@ -111,7 +80,7 @@ dm_cli__utils__indent() {
 # Status:
 #   0 - Other status is not expected.
 #==============================================================================
-dm_cli__utils__header_multiline() {
+dm__cli__display__header_multiline() {
   header_padding="$1"
   format="$2"
   header="$3"
@@ -132,7 +101,7 @@ dm_cli__utils__header_multiline() {
   # probably passed by this function. The additional -1 is accounted for the
   # fact that the folding would only happen on the text after the header and a
   # space.
-  wrap_limit="$((DM__GLOBAL__CONFIG__CLI__TEXT_WRAP_LIMIT - header_padding - 1))"
+  wrap_limit="$((DM__CONFIG__CLI__TEXT_WRAP_LIMIT - header_padding - 1))"
 
   # With named pipes we can feed the while loops to read the lines while being
   # able to access the outer context. The usual piped approach won't work as
@@ -211,4 +180,31 @@ dm_cli__utils__header_multiline() {
 
   done < outer_temp_pipe
   dm_tools__rm --force outer_temp_pipe
+}
+
+#==============================================================================
+# Print the passed string as a header.
+#------------------------------------------------------------------------------
+# Globals:
+#   DM__CONFIG__CLI__INDENT
+#   BOLD
+#   RESET
+# Arguments:
+#   [1] text - Text to be pronted as a header.
+# STDIN:
+#   None
+#------------------------------------------------------------------------------
+# Output variables:
+#   None
+# STDOUT:
+#   Formatted text
+# STDERR:
+#   None
+# Status:
+#   0 - Other status is not expected.
+#==============================================================================
+dm__cli__display__header() {
+  header="$1"
+  dm_tools__echo "${DM__CONFIG__CLI__INDENT}${BOLD}${header}${RESET}"
+  dm_tools__echo ''
 }

@@ -1,24 +1,48 @@
 #==============================================================================
-# MAKEFILE OPTIONAL INPUT VARIABLES
+# DOTMODULES USER CONFIGURATION PARAMETERS
+#==============================================================================
 
-DM_CONFIG__RELATIVE_MODULES_PATH   := __RELATIVE_MODULES_PATH__
+# Your directory that contains the condiguration modules.
+DM__CONFIG__RELATIVE_MODULES_PATH := __RELATIVE_MODULES_PATH__
 
-DM_CONFIG__CLI__TEXT_WRAP_LIMIT    := 90
-DM_CONFIG__CLI__DEFAULT_INDENT     := 4
-DM_CONFIG__CLI__PROMPT_TEMPLATE    := <<space>><<bold>>dm<<reset>> \#<<space>>
-DM_CONFIG__CLI__HOTKEYS__EXIT      := q|quit|exit
-DM_CONFIG__CLI__HOTKEYS__HELP      := ?|help
-DM_CONFIG__CLI__HOTKEYS__VERSION   := version
-DM_CONFIG__CLI__HOTKEYS__VARIABLES := v|variables
-DM_CONFIG__CLI__HOTKEYS__HOOKS     := h|hooks
-DM_CONFIG__CLI__HOTKEYS__SIGNALS   := s|signals
-DM_CONFIG__CLI__HOTKEYS__MODULES   := m|modules
-DM_CONFIG__CLI__HOTKEYS__DEPLOY    := d|deploy
+# Maximum line length after automatic wrapping will happen.
+DM__CONFIG__CLI__TEXT_WRAP_LIMIT := 90
 
-DM_CONFIG__WARNING__WRAPPED_DOCS   := 1
+# Indentation size in the interpreter as number of spaces.
+DM__CONFIG__CLI__INDENT := 2
+
+# Prompt template that can be constructed from the following variables:
+#   <<indent>>  - Indentation block you previously defined.
+#   <<space>>   - Single space character.
+#   <<reset>>   - Removes all formatting.
+#   <<bold>>    - Format the text after it as bold.
+#   <<dim>>     - Format the text after it as muted.
+#   <<red>>     - Format the text after it as red.
+#   <<green>>   - Format the text after it as green.
+#   <<yellow>>  - Format the text after it as yellow.
+#   <<blue>>    - Format the text after it as blue.
+#   <<magenta>> - Format the text after it as magenta.
+#   <<cyan>>    - Format the text after it as cyan.
+# Note that Makefile specific characters line dollar signs and hashmarks needs
+# to be escaped in order to be assigned properly.
+DM__CONFIG__CLI__PROMPT_TEMPLATE := <<bold>>dm<<reset>><<space>>\#<<space>>
+
+# Hotkey definitions for the cli as a pipe separated list.
+DM__CONFIG__CLI__HOTKEYS__EXIT      := q|quit|exit
+DM__CONFIG__CLI__HOTKEYS__HELP      := ?|help
+DM__CONFIG__CLI__HOTKEYS__HOOKS     := h|hooks
+DM__CONFIG__CLI__HOTKEYS__MODULES   := m|modules
+DM__CONFIG__CLI__HOTKEYS__VARIABLES := v|variables
+
+# Enables or disables the waring about too long documentation lines. If a line
+# is too long it will be wrapped but that might not happen the way you want it.
+DM__CONFIG__WARNING__WRAPPED_DOCS := 1
 
 #==============================================================================
-# MAKE SETTINGS
+#
+#      DO NOT EDIT BELOW THIS HEADER UNLESS YOU KNOW WHAT YOU ARE DOING
+#
+#==============================================================================
 
 .DEFAULT_GOAL := make_help
 SHELL := /bin/sh
@@ -28,14 +52,11 @@ DEBUG ?= 0
 PARAMETERS_FILE_NAME := __PARAMETERS_FILE_NAME__
 RELATIVE_PARAMETERS_FILE := __RELATIVE_PARAMETERS_FILE_PATH__
 
-#==============================================================================
-# HELP COMMAND
-
 .PHONY: make_help
 make_help:
 	@echo ""
 	@echo "$(BOLD)$(BLUE)----------------------------------------------------------$(RESET)"
-	@echo "  $(BOLD) $(BOLD_NAME) make interface $(RESET)"
+	@echo "  $(BOLD) DOTMODULES make interface $(RESET)"
 	@echo "$(BOLD)$(BLUE)----------------------------------------------------------$(RESET)"
 	@echo ""
 	@echo "   $(BOLD)$(BLUE)make_help$(RESET)           Prints out this help message."
@@ -43,30 +64,24 @@ make_help:
 	@echo "   $(BOLD)$(GREEN)dm$(RESET)                Open up the DotModules tool."
 	@echo ""
 
-#==============================================================================
-# DOT MODULES COMMANDS
-
 .PHONY: help
 help:
 	@$(ENTRY_FILE) --help
 
 .PHONY: dm
 dm:
-	@echo "DM_CONFIG__RELATIVE_MODULES_PATH=$(DM_CONFIG__RELATIVE_MODULES_PATH)" > $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__TEXT_WRAP_LIMIT=$(DM_CONFIG__CLI__TEXT_WRAP_LIMIT)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__DEFAULT_INDENT=$(DM_CONFIG__CLI__DEFAULT_INDENT)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__PROMPT_TEMPLATE=$(DM_CONFIG__CLI__PROMPT_TEMPLATE)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__EXIT=$(DM_CONFIG__CLI__HOTKEYS__EXIT)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__HELP=$(DM_CONFIG__CLI__HOTKEYS__HELP)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__VERSION=$(DM_CONFIG__CLI__HOTKEYS__VERSION)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__VARIABLES=$(DM_CONFIG__CLI__HOTKEYS__VARIABLES)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__HOOKS=$(DM_CONFIG__CLI__HOTKEYS__HOOKS)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__SIGNALS=$(DM_CONFIG__CLI__HOTKEYS__SIGNALS)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__MODULES=$(DM_CONFIG__CLI__HOTKEYS__MODULES)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__CLI__HOTKEYS__DEPLOY=$(DM_CONFIG__CLI__HOTKEYS__DEPLOY)" >> $(PARAMETERS_FILE_NAME)
-	@echo "DM_CONFIG__WARNING__WRAPPED_DOCS=$(DM_CONFIG__WARNING__WRAPPED_DOCS)" >> $(PARAMETERS_FILE_NAME)
-ifeq ($(DEBUG)), 0)
-	@$(ENTRY_FILE) $(RELATIVE_PARAMETERS_FILE) $(DEBUG)
+	@echo "DM__CONFIG__RELATIVE_MODULES_PATH=$(DM__CONFIG__RELATIVE_MODULES_PATH)" > $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__TEXT_WRAP_LIMIT=$(DM__CONFIG__CLI__TEXT_WRAP_LIMIT)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__INDENT=$(DM__CONFIG__CLI__INDENT)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__PROMPT_TEMPLATE=$(DM__CONFIG__CLI__PROMPT_TEMPLATE)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__HOTKEYS__EXIT=$(DM__CONFIG__CLI__HOTKEYS__EXIT)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__HOTKEYS__HELP=$(DM__CONFIG__CLI__HOTKEYS__HELP)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__HOTKEYS__HOOKS=$(DM__CONFIG__CLI__HOTKEYS__HOOKS)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__HOTKEYS__MODULES=$(DM__CONFIG__CLI__HOTKEYS__MODULES)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__CLI__HOTKEYS__VARIABLES=$(DM__CONFIG__CLI__HOTKEYS__VARIABLES)" >> $(PARAMETERS_FILE_NAME)
+	@echo "DM__CONFIG__WARNING__WRAPPED_DOCS=$(DM__CONFIG__WARNING__WRAPPED_DOCS)" >> $(PARAMETERS_FILE_NAME)
+ifeq ($(DEBUG),0)
+	@$(ENTRY_FILE) $(RELATIVE_PARAMETERS_FILE)
 else
-	@$(ENTRY_FILE) $(RELATIVE_PARAMETERS_FILE) $(DEBUG) 3>&1
+	@$(ENTRY_FILE) $(RELATIVE_PARAMETERS_FILE) 3>&1
 endif
