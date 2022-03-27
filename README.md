@@ -1,5 +1,7 @@
 ![build](https://github.com/dotmodules/dm/workflows/build/badge.svg)
 
+> DEVELOPER NOTE: This pure shell implementation got archived in favor of the python based implementation. I gave up on implementing the whole system in pure shell, though I already made a good progress here. I don't have the time to maintain this shell based code base unfortunately.
+
 # Dotfiles configuration management system
 
 Some change..
